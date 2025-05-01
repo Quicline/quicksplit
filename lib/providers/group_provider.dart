@@ -34,6 +34,29 @@ class GroupProvider with ChangeNotifier {
     }
   }
 
+  void updateExpense(String groupId, Expense updatedExpense) {
+    final groupIndex = _groups.indexWhere((g) => g.id == groupId);
+    if (groupIndex != -1) {
+      final expenseIndex = _groups[groupIndex].expenses.indexWhere(
+        (e) => e.id == updatedExpense.id,
+      );
+      if (expenseIndex != -1) {
+        _groups[groupIndex].expenses[expenseIndex] = updatedExpense;
+        saveGroups(); // Persist updated state
+        notifyListeners();
+      }
+    }
+  }
+
+  void removeExpense(String groupId, String expenseId) {
+    final groupIndex = _groups.indexWhere((g) => g.id == groupId);
+    if (groupIndex != -1) {
+      _groups[groupIndex].expenses.removeWhere((e) => e.id == expenseId);
+      saveGroups();
+      notifyListeners();
+    }
+  }
+
   Future<void> saveGroups() async {
     final prefs = await SharedPreferences.getInstance();
     final groupList = _groups.map((g) => g.toJson()).toList();

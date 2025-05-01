@@ -7,8 +7,9 @@ import '../../providers/group_provider.dart';
 
 class AddExpenseScreen extends StatefulWidget {
   final String groupId;
+  final Expense? expense;
 
-  const AddExpenseScreen({Key? key, required this.groupId}) : super(key: key);
+  const AddExpenseScreen({super.key, required this.groupId, this.expense});
 
   @override
   State<AddExpenseScreen> createState() => _AddExpenseScreenState();
@@ -21,27 +22,51 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final uuid = const Uuid();
   List<String> _selectedMembers = [];
 
+  @override
+  void initState() {
+    super.initState();
+    if (widget.expense != null) {
+      _titleController.text = widget.expense!.title;
+      _amountController.text = widget.expense!.amount.toString();
+      _selectedPayer = widget.expense!.paidBy;
+      _selectedMembers = [...widget.expense!.splitBetween];
+    }
+  }
+
   void _saveExpense() {
     if (_titleController.text.isNotEmpty &&
         _amountController.text.isNotEmpty &&
         _selectedPayer != null &&
         _selectedPayer!.isNotEmpty) {
-      final newExpense = Expense(
-        id: uuid.v4(),
-        title: _titleController.text,
-        amount: double.tryParse(_amountController.text) ?? 0,
-        paidBy: _selectedPayer ?? '',
-        splitBetween: _selectedMembers,
-      );
-
-      print('Adding expense: ${newExpense.title}, ${newExpense.amount}');
-
       final provider = Provider.of<GroupProvider>(context, listen: false);
-      provider.addExpense(widget.groupId, newExpense);
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Expense added!')));
+      if (widget.expense != null) {
+        // ✏️ Editing an existing expense
+        final updatedExpense = Expense(
+          id: widget.expense!.id,
+          title: _titleController.text,
+          amount: double.tryParse(_amountController.text) ?? 0,
+          paidBy: _selectedPayer ?? '',
+          splitBetween: _selectedMembers,
+        );
+        provider.updateExpense(widget.groupId, updatedExpense);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Expense updated!')));
+      } else {
+        // ➕ Creating a new expense
+        final newExpense = Expense(
+          id: uuid.v4(),
+          title: _titleController.text,
+          amount: double.tryParse(_amountController.text) ?? 0,
+          paidBy: _selectedPayer ?? '',
+          splitBetween: _selectedMembers,
+        );
+        provider.addExpense(widget.groupId, newExpense);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Expense added!')));
+      }
 
       Navigator.pop(context);
     } else {
@@ -60,7 +85,68 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Add Expense')),
+      appBar: AppBar(
+        title: Text(widget.expense != null ? 'Edit Expense' : 'Add Expense'),
+        actions:
+            widget.expense != null
+                ? [
+                  IconButton(
+                    icon: const Icon(Icons.delete),
+                    onPressed: () async {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder:
+                            (ctx) => AlertDialog(
+                              title: const Text('Delete Expense?'),
+                              content: const Text(
+                                'Are you sure you want to delete this expense?',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(ctx).pop(false),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.of(ctx).pop(true),
+                                  child: const Text('Delete'),
+                                ),
+                              ],
+                            ),
+                      );
+
+                      if (confirm == true) {
+                        final removedExpense = widget.expense!;
+
+                        final provider = Provider.of<GroupProvider>(
+                          context,
+                          listen: false,
+                        );
+                        provider.removeExpense(
+                          widget.groupId,
+                          removedExpense.id,
+                        );
+                        Navigator.pop(context);
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text('Expense deleted'),
+                            action: SnackBarAction(
+                              label: 'Undo',
+                              onPressed: () {
+                                provider.addExpense(
+                                  widget.groupId,
+                                  removedExpense,
+                                );
+                              },
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ]
+                : null,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
