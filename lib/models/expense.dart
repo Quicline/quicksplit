@@ -12,4 +12,20 @@ class Expense {
     required this.paidBy,
     required this.splitBetween,
   });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'title': title,
+    'amount': amount,
+    'paidBy': paidBy,
+    'splitBetween': splitBetween,
+  };
+
+  factory Expense.fromJson(Map<String, dynamic> json) => Expense(
+    id: json['id'],
+    title: json['title'],
+    amount: (json['amount'] as num).toDouble(),
+    paidBy: json['paidBy'],
+    splitBetween: List<String>.from(json['splitBetween']),
+  );
 }

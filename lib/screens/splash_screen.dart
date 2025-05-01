@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:quicksplit/providers/group_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'onboarding/onboarding_screen.dart';
 import 'group_list_screen.dart';
@@ -29,6 +31,9 @@ class _SplashScreenState extends State<SplashScreen>
     ).animate(_controller);
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+      await groupProvider.loadGroups();
+
       final prefs = await SharedPreferences.getInstance();
       final onboardingComplete = prefs.getBool('onboardingComplete') ?? false;
 
