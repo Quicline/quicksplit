@@ -1,0 +1,78 @@
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'onboarding/onboarding_screen.dart';
+import 'group_list_screen.dart';
+
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({Key? key}) : super(key: key);
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen>
+    with TickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _opacityAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _opacityAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.0,
+    ).animate(_controller);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final prefs = await SharedPreferences.getInstance();
+      final onboardingComplete = prefs.getBool('onboardingComplete') ?? false;
+
+      Future.delayed(const Duration(seconds: 1), () {
+        _controller.forward().then((_) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder:
+                  (_) =>
+                      onboardingComplete
+                          ? const GroupListScreen()
+                          : const OnboardingScreen(),
+            ),
+          );
+        });
+      });
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: AnimatedBuilder(
+          animation: _opacityAnimation,
+          builder:
+              (context, child) =>
+                  Opacity(opacity: _opacityAnimation.value, child: child),
+          child: const Text(
+            'QuickSplit',
+            style: TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: Colors.deepPurple,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+}
