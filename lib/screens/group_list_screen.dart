@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:quicksplit/screens/group/create_group_screen.dart';
 import 'package:quicksplit/screens/group/expense_list_screen.dart';
+import 'package:quicksplit/screens/quick_split_screen.dart';
 import '../../providers/group_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -120,14 +121,33 @@ class GroupListScreen extends StatelessWidget {
                   );
                 },
               ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const CreateGroupScreen()),
-          );
-        },
-        child: const Icon(Icons.add),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          FloatingActionButton.extended(
+            heroTag: 'quickSplit',
+            icon: const Icon(Icons.restaurant),
+            label: const Text('Quick Split'),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const QuickSplitScreen()),
+              ); // or use MaterialPageRoute if needed
+            },
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton(
+            heroTag: 'addGroup',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CreateGroupScreen()),
+              );
+            },
+            child: const Icon(Icons.add),
+          ),
+        ],
       ),
     );
   }

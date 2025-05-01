@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:quicksplit/screens/group_list_screen.dart';
+import 'package:quicksplit/screens/mode_selector_screen.dart';
 import 'onboarding_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -44,7 +45,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       await prefs.setBool('onboardingComplete', true);
 
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const GroupListScreen()),
+        MaterialPageRoute(builder: (_) => const ModeSelectorScreen()),
       );
     }
   }

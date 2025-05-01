@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:quicksplit/providers/group_provider.dart';
+import 'package:quicksplit/screens/mode_selector_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'onboarding/onboarding_screen.dart';
 import 'group_list_screen.dart';
@@ -39,15 +40,21 @@ class _SplashScreenState extends State<SplashScreen>
 
       Future.delayed(const Duration(seconds: 1), () {
         _controller.forward().then((_) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder:
-                  (_) =>
-                      onboardingComplete
-                          ? const GroupListScreen()
-                          : const OnboardingScreen(),
-            ),
-          );
+          if (!onboardingComplete) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+            );
+          } else {
+            if (groupProvider.groups.isEmpty) {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const ModeSelectorScreen()),
+              );
+            } else {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const GroupListScreen()),
+              );
+            }
+          }
         });
       });
     });
