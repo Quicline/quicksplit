@@ -222,238 +222,244 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                   },
                 ),
 
-              // Consolidated Summary and Settlement Card
+              // Tabbed Summary and Settlements UI
               const SizedBox(height: 16),
-              Card(
-                margin: const EdgeInsets.symmetric(
-                  vertical: 16,
-                  horizontal: 12,
-                ),
-                elevation: 2,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Group Summary & Settlements',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      ...summary.entries
-                          .toList()
-                          .asMap()
-                          .entries
-                          .where((e) => _showAllSummary || e.key < 4)
-                          .map((e) {
-                            final entry = e.value;
-                            final name = entry.key;
-                            final paid = entry.value['paid']!;
-                            final share = entry.value['share']!;
-                            final balance = entry.value['balance']!;
-                            final balanceText = balance.abs().toStringAsFixed(
-                              2,
-                            );
-                            final balanceColor =
-                                balance > 0
-                                    ? Colors.green
-                                    : (balance < 0 ? Colors.red : Colors.grey);
-                            final balanceMessage =
-                                balance > 0
-                                    ? 'is owed \$$balanceText'
-                                    : balance < 0
-                                    ? 'owes \$$balanceText'
-                                    : 'is settled';
-
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 4.0,
-                              ),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+              DefaultTabController(
+                length: 2,
+                child: Column(
+                  children: [
+                    const TabBar(
+                      labelColor: Colors.blue,
+                      unselectedLabelColor: Colors.grey,
+                      tabs: [Tab(text: 'Summary'), Tab(text: 'Settlements')],
+                    ),
+                    SizedBox(
+                      height: 500,
+                      child: TabBarView(
+                        children: [
+                          // Summary Tab
+                          Card(
+                            margin: const EdgeInsets.all(12),
+                            elevation: 2,
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Stack(
                                 children: [
-                                  Text(name),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text(
-                                        'Paid: \$${paid.toStringAsFixed(2)}',
-                                      ),
-                                      Text(
-                                        'Owed Portion: \$${share.toStringAsFixed(2)}',
-                                      ),
-                                      Text(
-                                        balanceMessage,
-                                        style: TextStyle(color: balanceColor),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            );
-                          }),
-                      if (summary.length > 4)
-                        TextButton(
-                          onPressed: () {
-                            setState(() {
-                              _showAllSummary = !_showAllSummary;
-                            });
-                          },
-                          child: Text(
-                            _showAllSummary ? 'Collapse' : 'Show All',
-                          ),
-                        ),
-                      const SizedBox(height: 16),
-                      if (settlements.isNotEmpty)
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Settlement Suggestions',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 8),
-                            Builder(
-                              builder: (context) {
-                                final Map<String, List<Map<String, dynamic>>>
-                                groupedSettlements = {};
-                                for (final s in settlements) {
-                                  final payer = s['from'];
-                                  groupedSettlements
-                                      .putIfAbsent(payer, () => [])
-                                      .add(s);
-                                }
-                                final groupedList =
-                                    groupedSettlements.entries.toList();
-                                return Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    ...groupedList.map((entry) {
-                                      final payer = entry.key;
-                                      final payments =
-                                          entry.value
-                                              .where((s) => s['amount'] != 0.0)
-                                              .toList();
-
-                                      if (payments.isEmpty)
-                                        return const SizedBox.shrink();
-
-                                      return ExpansionTile(
-                                        title: Text(
-                                          '$payer should pay ${payments.length} ${payments.length == 1 ? 'person' : 'people'}',
-                                          style: const TextStyle(
+                                  SingleChildScrollView(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'Group Summary',
+                                          style: TextStyle(
                                             fontWeight: FontWeight.bold,
+                                            fontSize: 18,
                                           ),
                                         ),
-                                        children:
-                                            payments.map((s) {
-                                              final key =
-                                                  '${s['from']}->${s['to']}:${s['amount'].toStringAsFixed(2)}';
-                                              final isChecked = _settledKeys
-                                                  .contains(key);
-                                              return Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 12.0,
-                                                      vertical: 6,
-                                                    ),
-                                                child: Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceBetween,
+                                        const SizedBox(height: 12),
+                                        ...summary.entries.map((entry) {
+                                          final name = entry.key;
+                                          final paid = entry.value['paid']!;
+                                          final share = entry.value['share']!;
+                                          final balance =
+                                              entry.value['balance']!;
+                                          final balanceText = balance
+                                              .abs()
+                                              .toStringAsFixed(2);
+                                          final balanceColor =
+                                              balance > 0
+                                                  ? Colors.green
+                                                  : (balance < 0
+                                                      ? Colors.red
+                                                      : Colors.grey);
+                                          final balanceMessage =
+                                              balance > 0
+                                                  ? 'is owed \$$balanceText'
+                                                  : balance < 0
+                                                  ? 'owes \$$balanceText'
+                                                  : 'is settled';
+
+                                          return Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 4,
+                                            ),
+                                            child: Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              children: [
+                                                Text(
+                                                  name,
+                                                  style: const TextStyle(
+                                                    fontSize: 15,
+                                                  ),
+                                                ),
+                                                Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.end,
                                                   children: [
-                                                    Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      children: [
-                                                        Text(
-                                                          s['to'],
-                                                          style: TextStyle(
-                                                            fontSize: 15,
-                                                            fontWeight:
-                                                                FontWeight.w500,
-                                                            color:
-                                                                isChecked
-                                                                    ? Colors
-                                                                        .grey
-                                                                    : Colors
-                                                                        .black,
-                                                            decoration:
-                                                                isChecked
-                                                                    ? TextDecoration
-                                                                        .lineThrough
-                                                                    : null,
-                                                          ),
-                                                        ),
-                                                        Text(
-                                                          '\$${s['amount'].toStringAsFixed(2)}',
-                                                          style: TextStyle(
-                                                            fontSize: 13,
-                                                            color:
-                                                                isChecked
-                                                                    ? Colors
-                                                                        .grey
-                                                                    : Colors
-                                                                        .black54,
-                                                            decoration:
-                                                                isChecked
-                                                                    ? TextDecoration
-                                                                        .lineThrough
-                                                                    : null,
-                                                          ),
-                                                        ),
-                                                      ],
+                                                    Text(
+                                                      'Paid: \$${paid.toStringAsFixed(2)}',
+                                                      style: const TextStyle(
+                                                        fontSize: 14,
+                                                      ),
                                                     ),
-                                                    Checkbox(
-                                                      value: isChecked,
-                                                      onChanged: (value) {
-                                                        setState(() {
-                                                          if (value == true) {
-                                                            _settledKeys.add(
-                                                              key,
-                                                            );
-                                                          } else {
-                                                            _settledKeys.remove(
-                                                              key,
-                                                            );
-                                                          }
-                                                          _saveSettledKeys();
-                                                        });
-                                                      },
+                                                    Text(
+                                                      'Owed Portion: \$${share.toStringAsFixed(2)}',
+                                                      style: const TextStyle(
+                                                        fontSize: 14,
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      balanceMessage,
+                                                      style: TextStyle(
+                                                        color: balanceColor,
+                                                        fontSize: 14,
+                                                      ),
                                                     ),
                                                   ],
                                                 ),
-                                              );
-                                            }).toList(),
-                                      );
-                                    }),
-                                    if (groupedSettlements.length > 2)
-                                      TextButton(
-                                        onPressed: () {
-                                          setState(() {
-                                            _showAllSettlements =
-                                                !_showAllSettlements;
-                                          });
-                                        },
-                                        child: Text(
-                                          _showAllSettlements
-                                              ? 'Collapse'
-                                              : 'Show All',
-                                        ),
-                                      ),
-                                  ],
-                                );
-                              },
+                                              ],
+                                            ),
+                                          );
+                                        }).toList(),
+                                        const SizedBox(
+                                          height: 30,
+                                        ), // Padding for fade visibility
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ],
-                        ),
-                    ],
-                  ),
+                          ),
+
+                          // Settlements Tab
+                          Card(
+                            margin: const EdgeInsets.all(12),
+                            elevation: 2,
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Stack(
+                                children: [
+                                  Builder(
+                                    builder: (context) {
+                                      final Map<
+                                        String,
+                                        List<Map<String, dynamic>>
+                                      >
+                                      groupedSettlements = {};
+                                      for (final s in settlements) {
+                                        final payer = s['from'];
+                                        groupedSettlements
+                                            .putIfAbsent(payer, () => [])
+                                            .add(s);
+                                      }
+                                      final groupedList =
+                                          groupedSettlements.entries.toList();
+                                      return ListView(
+                                        children: [
+                                          const Text(
+                                            'Settlement Suggestions',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 18,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 12),
+                                          ...groupedList.map((entry) {
+                                            final payer = entry.key;
+                                            final payments =
+                                                entry.value
+                                                    .where(
+                                                      (s) => s['amount'] != 0.0,
+                                                    )
+                                                    .toList();
+                                            if (payments.isEmpty)
+                                              return const SizedBox.shrink();
+
+                                            final allChecked = payments.every((
+                                              s,
+                                            ) {
+                                              final key =
+                                                  '${s['from']}->${s['to']}:${s['amount'].toStringAsFixed(2)}';
+                                              return _settledKeys.contains(key);
+                                            });
+
+                                            return ExpansionTile(
+                                              title: Text(
+                                                '$payer should pay ${payments.length} ${payments.length == 1 ? 'person' : 'people'}',
+                                                style: TextStyle(
+                                                  fontSize: 15,
+                                                  color:
+                                                      allChecked
+                                                          ? Colors.grey
+                                                          : null,
+                                                  decoration:
+                                                      allChecked
+                                                          ? TextDecoration
+                                                              .lineThrough
+                                                          : null,
+                                                ),
+                                              ),
+                                              children:
+                                                  payments.map((s) {
+                                                    final key =
+                                                        '${s['from']}->${s['to']}:${s['amount'].toStringAsFixed(2)}';
+                                                    final isChecked =
+                                                        _settledKeys.contains(
+                                                          key,
+                                                        );
+                                                    return ListTile(
+                                                      title: Text(
+                                                        '${s['to']} → \$${s['amount'].toStringAsFixed(2)}',
+                                                        style: TextStyle(
+                                                          fontSize: 15,
+                                                          color:
+                                                              isChecked
+                                                                  ? Colors.grey
+                                                                  : Colors
+                                                                      .black,
+                                                          decoration:
+                                                              isChecked
+                                                                  ? TextDecoration
+                                                                      .lineThrough
+                                                                  : null,
+                                                        ),
+                                                      ),
+                                                      trailing: Checkbox(
+                                                        value: isChecked,
+                                                        onChanged: (val) {
+                                                          setState(() {
+                                                            if (val == true) {
+                                                              _settledKeys.add(
+                                                                key,
+                                                              );
+                                                            } else {
+                                                              _settledKeys
+                                                                  .remove(key);
+                                                            }
+                                                            _saveSettledKeys();
+                                                          });
+                                                        },
+                                                      ),
+                                                    );
+                                                  }).toList(),
+                                            );
+                                          }).toList(),
+                                        ],
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
