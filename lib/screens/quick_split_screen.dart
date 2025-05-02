@@ -81,7 +81,6 @@ class _QuickSplitScreenState extends State<QuickSplitScreen> {
                 border: OutlineInputBorder(),
               ),
               keyboardType: TextInputType.numberWithOptions(decimal: true),
-              onChanged: (_) => _calculateSplit(),
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<int>(
@@ -102,7 +101,6 @@ class _QuickSplitScreenState extends State<QuickSplitScreen> {
                   setState(() {
                     _selectedPeople = value;
                   });
-                  _calculateSplit();
                 }
               },
             ),
@@ -114,14 +112,13 @@ class _QuickSplitScreenState extends State<QuickSplitScreen> {
                 border: OutlineInputBorder(),
               ),
               items:
-                  ['10%', '15%', '18%', '20%', 'Other'].map((value) {
+                  ['0%', '10%', '15%', '18%', '20%', 'Other'].map((value) {
                     return DropdownMenuItem(value: value, child: Text(value));
                   }).toList(),
               onChanged: (value) {
                 setState(() {
                   _selectedTip = value!;
                 });
-                _calculateSplit();
               },
             ),
             if (_selectedTip == 'Other') ...[
@@ -133,7 +130,25 @@ class _QuickSplitScreenState extends State<QuickSplitScreen> {
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.numberWithOptions(decimal: true),
-                onChanged: (_) => _calculateSplit(),
+              ),
+            ],
+            if (_selectedTip != 'Other') ...[
+              const SizedBox(height: 12),
+              const Text(
+                'Smart Tip Suggestions:',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey,
+                ),
+              ),
+              ..._calculateRoundedSmartTips(
+                double.tryParse(_totalController.text) ?? 0,
+                _selectedPeople,
+              ).entries.map(
+                (entry) => Text(
+                  '${entry.key} → Tip per person: \$${entry.value.toStringAsFixed(2)}',
+                ),
               ),
             ],
             const SizedBox(height: 12),
@@ -181,24 +196,6 @@ class _QuickSplitScreenState extends State<QuickSplitScreen> {
                   ),
                 ),
               const SizedBox(height: 12),
-              const Text(
-                'Smart Tip Suggestions (per person):',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey,
-                ),
-              ),
-              Text(
-                '10% → \$${(((double.tryParse(_totalController.text) ?? 0) * 0.10) / _selectedPeople).toStringAsFixed(2)}',
-              ),
-              Text(
-                '15% → \$${(((double.tryParse(_totalController.text) ?? 0) * 0.15) / _selectedPeople).toStringAsFixed(2)}',
-              ),
-              Text(
-                '20% → \$${(((double.tryParse(_totalController.text) ?? 0) * 0.20) / _selectedPeople).toStringAsFixed(2)}',
-              ),
-              const SizedBox(height: 20),
               ElevatedButton.icon(
                 icon: const Icon(Icons.copy),
                 label: const Text('Copy Summary'),
@@ -257,4 +254,28 @@ Each pays: \$${_result!.toStringAsFixed(2)}
       ),
     );
   }
+}
+
+Map<String, double> _calculateRoundedSmartTips(double total, int people) {
+  final suggestions = <String, double>{};
+  final realisticPercents = [0, 10, 12, 15, 18, 20, 22, 25];
+
+  for (var percent in realisticPercents) {
+    final tipAmount = total * (percent / 100);
+    final totalWithTip = total + tipAmount;
+    final perPerson = totalWithTip / people;
+
+    // Round to the nearest 0.50
+    final roundedPerPerson = (perPerson * 2).ceil() / 2;
+    final roundedTotal = roundedPerPerson * people;
+    final adjustedTip = roundedTotal - total;
+
+    if ((roundedPerPerson * 100) % 50 == 0) {
+      suggestions['$percent%'] = adjustedTip / people;
+    }
+
+    if (suggestions.length >= 3) break;
+  }
+
+  return suggestions;
 }
