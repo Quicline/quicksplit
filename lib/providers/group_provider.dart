@@ -89,4 +89,43 @@ class GroupProvider with ChangeNotifier {
       notifyListeners();
     }
   }
+
+  Map<String, Map<String, double>> calculateMemberSummary(String groupId) {
+    final group = _groups.firstWhere(
+      (g) => g.id == groupId,
+      orElse: () => throw Exception('Group not found'),
+    );
+    final summary = <String, Map<String, double>>{};
+
+    for (final expense in group.expenses) {
+      // Track who paid
+      summary.putIfAbsent(
+        expense.paidBy,
+        () => {'paid': 0.0, 'share': 0.0, 'balance': 0.0},
+      );
+      summary[expense.paidBy]!['paid'] =
+          (summary[expense.paidBy]!['paid'] ?? 0) + expense.amount;
+
+      // Calculate per-person share
+      final perPersonShare = expense.amount / expense.splitBetween.length;
+
+      for (final member in expense.splitBetween) {
+        summary.putIfAbsent(
+          member,
+          () => {'paid': 0.0, 'share': 0.0, 'balance': 0.0},
+        );
+        summary[member]!['share'] =
+            (summary[member]!['share'] ?? 0) + perPersonShare;
+      }
+    }
+
+    // Calculate balance
+    for (final entry in summary.entries) {
+      final paid = entry.value['paid'] ?? 0;
+      final share = entry.value['share'] ?? 0;
+      entry.value['balance'] = paid - share;
+    }
+
+    return summary;
+  }
 }
