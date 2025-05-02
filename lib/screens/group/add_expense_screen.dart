@@ -157,86 +157,88 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 ]
                 : null,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _titleController,
-              decoration: const InputDecoration(
-                labelText: 'Expense Title',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _amountController,
-              keyboardType: TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                labelText: 'Amount',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              value: _selectedPayer,
-              decoration: const InputDecoration(
-                labelText: 'Paid By',
-                border: OutlineInputBorder(),
-              ),
-              items:
-                  group.members.map((member) {
-                    return DropdownMenuItem<String>(
-                      value: member,
-                      child: Text(member),
-                    );
-                  }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  _selectedPayer = value;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Split Between:',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Column(
-              children:
-                  group.members.map((member) {
-                    return CheckboxListTile(
-                      title: Text(member),
-                      value: _selectedMembers.contains(member),
-                      onChanged: (selected) {
-                        setState(() {
-                          if (selected == true) {
-                            _selectedMembers.add(member);
-                          } else {
-                            _selectedMembers.remove(member);
-                          }
-                        });
-                      },
-                    );
-                  }).toList(),
-            ),
-            const SizedBox(height: 24),
-            if (widget.expense != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 16.0),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Created: ${DateFormat.yMMMd().add_jm().format(widget.expense!.createdAt)}',
-                    style: TextStyle(color: Colors.grey[600]),
-                  ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            children: [
+              TextField(
+                controller: _titleController,
+                decoration: const InputDecoration(
+                  labelText: 'Expense Title',
+                  border: OutlineInputBorder(),
                 ),
               ),
-            ElevatedButton(
-              onPressed: _saveExpense,
-              child: const Text('Save Expense'),
-            ),
-          ],
+              const SizedBox(height: 16),
+              TextField(
+                controller: _amountController,
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'Amount',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<String>(
+                value: _selectedPayer,
+                decoration: const InputDecoration(
+                  labelText: 'Paid By',
+                  border: OutlineInputBorder(),
+                ),
+                items:
+                    group.members.map((member) {
+                      return DropdownMenuItem<String>(
+                        value: member,
+                        child: Text(member),
+                      );
+                    }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedPayer = value;
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Split Between:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Column(
+                children:
+                    group.members.map((member) {
+                      return CheckboxListTile(
+                        title: Text(member),
+                        value: _selectedMembers.contains(member),
+                        onChanged: (selected) {
+                          setState(() {
+                            if (selected == true) {
+                              _selectedMembers.add(member);
+                            } else {
+                              _selectedMembers.remove(member);
+                            }
+                          });
+                        },
+                      );
+                    }).toList(),
+              ),
+              const SizedBox(height: 24),
+              if (widget.expense != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16.0),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Created: ${DateFormat.yMMMd().add_jm().format(widget.expense!.createdAt)}',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                  ),
+                ),
+              ElevatedButton(
+                onPressed: _saveExpense,
+                child: const Text('Save Expense'),
+              ),
+            ],
+          ),
         ),
       ),
     );
