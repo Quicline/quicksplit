@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:quicksplit/models/group.dart';
@@ -324,6 +325,8 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                                             ),
                                           );
                                         }).toList(),
+                                        const SizedBox(height: 16),
+                                        // Share Summary button removed
                                         const SizedBox(
                                           height: 30,
                                         ), // Padding for fade visibility
@@ -359,6 +362,9 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                                       final groupedList =
                                           groupedSettlements.entries.toList();
                                       return ListView(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 100,
+                                        ),
                                         children: [
                                           const Text(
                                             'Settlement Suggestions',
@@ -368,6 +374,42 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                                             ),
                                           ),
                                           const SizedBox(height: 12),
+                                          ElevatedButton.icon(
+                                            icon: const Icon(Icons.copy),
+                                            label: const Text(
+                                              'Copy Settlements to Clipboard',
+                                            ),
+                                            onPressed: () {
+                                              final buffer = StringBuffer();
+                                              buffer.writeln(
+                                                'Settlement Summary for Group: ${widget.group.name}',
+                                              );
+                                              for (final s in settlements) {
+                                                final from = s['from'];
+                                                final to = s['to'];
+                                                final amount = s['amount'];
+                                                if (amount > 0) {
+                                                  buffer.writeln(
+                                                    '$from → $to: \$${amount.toStringAsFixed(2)}',
+                                                  );
+                                                }
+                                              }
+                                              Clipboard.setData(
+                                                ClipboardData(
+                                                  text: buffer.toString(),
+                                                ),
+                                              );
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    'Settlements copied to clipboard',
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
                                           ...groupedList.map((entry) {
                                             final payer = entry.key;
                                             final payments =
@@ -376,6 +418,7 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                                                       (s) => s['amount'] != 0.0,
                                                     )
                                                     .toList();
+
                                             if (payments.isEmpty)
                                               return const SizedBox.shrink();
 
@@ -387,65 +430,78 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                                               return _settledKeys.contains(key);
                                             });
 
-                                            return ExpansionTile(
-                                              title: Text(
-                                                '$payer should pay ${payments.length} ${payments.length == 1 ? 'person' : 'people'}',
-                                                style: TextStyle(
-                                                  fontSize: 15,
-                                                  color:
-                                                      allChecked
-                                                          ? Colors.grey
-                                                          : null,
-                                                  decoration:
-                                                      allChecked
-                                                          ? TextDecoration
-                                                              .lineThrough
-                                                          : null,
-                                                ),
+                                            return Card(
+                                              margin:
+                                                  const EdgeInsets.symmetric(
+                                                    vertical: 8,
+                                                  ),
+                                              elevation: 1,
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
                                               ),
-                                              children:
-                                                  payments.map((s) {
-                                                    final key =
-                                                        '${s['from']}->${s['to']}:${s['amount'].toStringAsFixed(2)}';
-                                                    final isChecked =
-                                                        _settledKeys.contains(
-                                                          key,
-                                                        );
-                                                    return ListTile(
-                                                      title: Text(
-                                                        '${s['to']} → \$${s['amount'].toStringAsFixed(2)}',
-                                                        style: TextStyle(
-                                                          fontSize: 15,
-                                                          color:
-                                                              isChecked
-                                                                  ? Colors.grey
-                                                                  : Colors
-                                                                      .black,
-                                                          decoration:
-                                                              isChecked
-                                                                  ? TextDecoration
-                                                                      .lineThrough
-                                                                  : null,
+                                              child: ExpansionTile(
+                                                title: Text(
+                                                  '$payer should pay ${payments.length} ${payments.length == 1 ? 'person' : 'people'}',
+                                                  style: TextStyle(
+                                                    fontSize: 15,
+                                                    color:
+                                                        allChecked
+                                                            ? Colors.grey
+                                                            : null,
+                                                    decoration:
+                                                        allChecked
+                                                            ? TextDecoration
+                                                                .lineThrough
+                                                            : null,
+                                                  ),
+                                                ),
+                                                children:
+                                                    payments.map((s) {
+                                                      final key =
+                                                          '${s['from']}->${s['to']}:${s['amount'].toStringAsFixed(2)}';
+                                                      final isChecked =
+                                                          _settledKeys.contains(
+                                                            key,
+                                                          );
+                                                      return ListTile(
+                                                        title: Text(
+                                                          '${s['to']} → \$${s['amount'].toStringAsFixed(2)}',
+                                                          style: TextStyle(
+                                                            fontSize: 15,
+                                                            color:
+                                                                isChecked
+                                                                    ? Colors
+                                                                        .grey
+                                                                    : Colors
+                                                                        .black,
+                                                            decoration:
+                                                                isChecked
+                                                                    ? TextDecoration
+                                                                        .lineThrough
+                                                                    : null,
+                                                          ),
                                                         ),
-                                                      ),
-                                                      trailing: Checkbox(
-                                                        value: isChecked,
-                                                        onChanged: (val) {
-                                                          setState(() {
-                                                            if (val == true) {
-                                                              _settledKeys.add(
-                                                                key,
-                                                              );
-                                                            } else {
-                                                              _settledKeys
-                                                                  .remove(key);
-                                                            }
-                                                            _saveSettledKeys();
-                                                          });
-                                                        },
-                                                      ),
-                                                    );
-                                                  }).toList(),
+                                                        trailing: Checkbox(
+                                                          value: isChecked,
+                                                          onChanged: (val) {
+                                                            setState(() {
+                                                              if (val == true) {
+                                                                _settledKeys
+                                                                    .add(key);
+                                                              } else {
+                                                                _settledKeys
+                                                                    .remove(
+                                                                      key,
+                                                                    );
+                                                              }
+                                                              _saveSettledKeys();
+                                                            });
+                                                          },
+                                                        ),
+                                                      );
+                                                    }).toList(),
+                                              ),
                                             );
                                           }).toList(),
                                         ],
