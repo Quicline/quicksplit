@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:quicksplit/models/group.dart';
 import '../../providers/group_provider.dart';
@@ -15,6 +16,34 @@ class ExpenseListScreen extends StatefulWidget {
 
 class _ExpenseListScreenState extends State<ExpenseListScreen> {
   bool _showAllSummary = false;
+  bool _showAllSettlements = false;
+  Map<String, Map<String, double>> _summary = {};
+  List<Map<String, dynamic>> _settlements = [];
+  Set<String> _settledKeys = {};
+
+  @override
+  void initState() {
+    super.initState();
+    // Delay to ensure context is available for Provider
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final prefs = await SharedPreferences.getInstance();
+      final stored = prefs.getStringList('settled_${widget.group.id}') ?? [];
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+      setState(() {
+        _settledKeys = stored.toSet();
+        _summary = groupProvider.calculateMemberSummary(widget.group.id);
+        _settlements = groupProvider.calculateSettlement(widget.group.id);
+      });
+    });
+  }
+
+  Future<void> _saveSettledKeys() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(
+      'settled_${widget.group.id}',
+      _settledKeys.toList(),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,9 +52,8 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
       (g) => g.id == widget.group.id,
       orElse: () => widget.group,
     );
-    final summary = Provider.of<GroupProvider>(
-      context,
-    ).calculateMemberSummary(widget.group.id);
+    final summary = _summary;
+    final settlements = _settlements;
 
     return Scaffold(
       appBar: AppBar(
@@ -40,7 +68,20 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                   builder: (_) => AddExpenseScreen(groupId: currentGroup.id),
                 ),
               ).then((_) {
-                if (mounted) setState(() {});
+                if (mounted) {
+                  final groupProvider = Provider.of<GroupProvider>(
+                    context,
+                    listen: false,
+                  );
+                  setState(() {
+                    _summary = groupProvider.calculateMemberSummary(
+                      widget.group.id,
+                    );
+                    _settlements = groupProvider.calculateSettlement(
+                      widget.group.id,
+                    );
+                  });
+                }
               });
             },
           ),
@@ -105,6 +146,17 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                             currentGroup.id,
                             removedExpense.id,
                           );
+
+                          final updatedSummary = provider
+                              .calculateMemberSummary(currentGroup.id);
+                          final updatedSettlements = provider
+                              .calculateSettlement(currentGroup.id);
+
+                          setState(() {
+                            _summary = updatedSummary;
+                            _settlements = updatedSettlements;
+                          });
+
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: const Text('Expense deleted'),
@@ -115,6 +167,14 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                                     currentGroup.id,
                                     removedExpense,
                                   );
+                                  final refreshedSummary = provider
+                                      .calculateMemberSummary(currentGroup.id);
+                                  final refreshedSettlements = provider
+                                      .calculateSettlement(currentGroup.id);
+                                  setState(() {
+                                    _summary = refreshedSummary;
+                                    _settlements = refreshedSettlements;
+                                  });
                                 },
                               ),
                             ),
@@ -142,7 +202,19 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                                   ),
                             ),
                           ).then((_) {
-                            if (mounted) setState(() {});
+                            if (mounted) {
+                              final groupProvider = Provider.of<GroupProvider>(
+                                context,
+                                listen: false,
+                              );
+                              setState(() {
+                                _summary = groupProvider.calculateMemberSummary(
+                                  widget.group.id,
+                                );
+                                _settlements = groupProvider
+                                    .calculateSettlement(widget.group.id);
+                              });
+                            }
                           });
                         },
                       ),
@@ -150,7 +222,7 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                   },
                 ),
 
-              // Group Summary Card
+              // Consolidated Summary and Settlement Card
               const SizedBox(height: 16),
               Card(
                 margin: const EdgeInsets.symmetric(
@@ -164,8 +236,11 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Group Summary',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        'Group Summary & Settlements',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       ...summary.entries
@@ -231,6 +306,151 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                           child: Text(
                             _showAllSummary ? 'Collapse' : 'Show All',
                           ),
+                        ),
+                      const SizedBox(height: 16),
+                      if (settlements.isNotEmpty)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Settlement Suggestions',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 8),
+                            Builder(
+                              builder: (context) {
+                                final Map<String, List<Map<String, dynamic>>>
+                                groupedSettlements = {};
+                                for (final s in settlements) {
+                                  final payer = s['from'];
+                                  groupedSettlements
+                                      .putIfAbsent(payer, () => [])
+                                      .add(s);
+                                }
+                                final groupedList =
+                                    groupedSettlements.entries.toList();
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    ...groupedList.map((entry) {
+                                      final payer = entry.key;
+                                      final payments =
+                                          entry.value
+                                              .where((s) => s['amount'] != 0.0)
+                                              .toList();
+
+                                      if (payments.isEmpty)
+                                        return const SizedBox.shrink();
+
+                                      return ExpansionTile(
+                                        title: Text(
+                                          '$payer should pay ${payments.length} ${payments.length == 1 ? 'person' : 'people'}',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        children:
+                                            payments.map((s) {
+                                              final key =
+                                                  '${s['from']}->${s['to']}:${s['amount'].toStringAsFixed(2)}';
+                                              final isChecked = _settledKeys
+                                                  .contains(key);
+                                              return Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 12.0,
+                                                      vertical: 6,
+                                                    ),
+                                                child: Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
+                                                  children: [
+                                                    Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        Text(
+                                                          s['to'],
+                                                          style: TextStyle(
+                                                            fontSize: 15,
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                            color:
+                                                                isChecked
+                                                                    ? Colors
+                                                                        .grey
+                                                                    : Colors
+                                                                        .black,
+                                                            decoration:
+                                                                isChecked
+                                                                    ? TextDecoration
+                                                                        .lineThrough
+                                                                    : null,
+                                                          ),
+                                                        ),
+                                                        Text(
+                                                          '\$${s['amount'].toStringAsFixed(2)}',
+                                                          style: TextStyle(
+                                                            fontSize: 13,
+                                                            color:
+                                                                isChecked
+                                                                    ? Colors
+                                                                        .grey
+                                                                    : Colors
+                                                                        .black54,
+                                                            decoration:
+                                                                isChecked
+                                                                    ? TextDecoration
+                                                                        .lineThrough
+                                                                    : null,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    Checkbox(
+                                                      value: isChecked,
+                                                      onChanged: (value) {
+                                                        setState(() {
+                                                          if (value == true) {
+                                                            _settledKeys.add(
+                                                              key,
+                                                            );
+                                                          } else {
+                                                            _settledKeys.remove(
+                                                              key,
+                                                            );
+                                                          }
+                                                          _saveSettledKeys();
+                                                        });
+                                                      },
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                            }).toList(),
+                                      );
+                                    }),
+                                    if (groupedSettlements.length > 2)
+                                      TextButton(
+                                        onPressed: () {
+                                          setState(() {
+                                            _showAllSettlements =
+                                                !_showAllSettlements;
+                                          });
+                                        },
+                                        child: Text(
+                                          _showAllSettlements
+                                              ? 'Collapse'
+                                              : 'Show All',
+                                        ),
+                                      ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ],
                         ),
                     ],
                   ),

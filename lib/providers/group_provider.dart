@@ -90,36 +90,53 @@ class GroupProvider with ChangeNotifier {
     }
   }
 
+  void markSettlement(String groupId, String key) {
+    final group = _groups.firstWhere((g) => g.id == groupId);
+    group.settledTransactions[key] = true;
+    saveGroups();
+    notifyListeners();
+  }
+
+  void unmarkSettlement(String groupId, String key) {
+    final group = _groups.firstWhere((g) => g.id == groupId);
+    group.settledTransactions.remove(key);
+    saveGroups();
+    notifyListeners();
+  }
+
+  bool isSettled(String groupId, String key) {
+    final group = _groups.firstWhere((g) => g.id == groupId);
+    return group.settledTransactions.containsKey(key);
+  }
+
   Map<String, Map<String, double>> calculateMemberSummary(String groupId) {
     final group = _groups.firstWhere(
       (g) => g.id == groupId,
       orElse: () => throw Exception('Group not found'),
     );
+
     final summary = <String, Map<String, double>>{};
 
     for (final expense in group.expenses) {
-      // Track who paid
-      summary.putIfAbsent(
-        expense.paidBy,
-        () => {'paid': 0.0, 'share': 0.0, 'balance': 0.0},
-      );
-      summary[expense.paidBy]!['paid'] =
-          (summary[expense.paidBy]!['paid'] ?? 0) + expense.amount;
-
-      // Calculate per-person share
       final perPersonShare = expense.amount / expense.splitBetween.length;
 
-      for (final member in expense.splitBetween) {
+      // Ensure all members and payer are initialized
+      for (final member in [...expense.splitBetween, expense.paidBy]) {
         summary.putIfAbsent(
           member,
           () => {'paid': 0.0, 'share': 0.0, 'balance': 0.0},
         );
+      }
+
+      for (final member in expense.splitBetween) {
         summary[member]!['share'] =
             (summary[member]!['share'] ?? 0) + perPersonShare;
       }
+
+      summary[expense.paidBy]!['paid'] =
+          (summary[expense.paidBy]!['paid'] ?? 0) + expense.amount;
     }
 
-    // Calculate balance
     for (final entry in summary.entries) {
       final paid = entry.value['paid'] ?? 0;
       final share = entry.value['share'] ?? 0;
@@ -127,5 +144,50 @@ class GroupProvider with ChangeNotifier {
     }
 
     return summary;
+  }
+
+  /// Smart Settlement: Calculate who should pay whom and how much to settle balances.
+  List<Map<String, dynamic>> calculateSettlement(String groupId) {
+    final summary = calculateMemberSummary(groupId);
+    final balances = <String, double>{};
+
+    // Extract balances from summary
+    summary.forEach((name, data) {
+      balances[name] = (data['paid'] ?? 0) - (data['share'] ?? 0);
+    });
+
+    final payers = <String, double>{};
+    final receivers = <String, double>{};
+
+    balances.forEach((name, balance) {
+      if (balance < 0) {
+        payers[name] = -balance;
+      } else if (balance > 0) {
+        receivers[name] = balance;
+      }
+    });
+
+    final settlements = <Map<String, dynamic>>[];
+
+    for (final payer in payers.entries) {
+      var owed = payer.value;
+
+      for (final receiver in receivers.entries.toList()) {
+        if (owed == 0) break;
+
+        final payAmount = owed < receiver.value ? owed : receiver.value;
+
+        settlements.add({
+          'from': payer.key,
+          'to': receiver.key,
+          'amount': double.parse(payAmount.toStringAsFixed(2)),
+        });
+
+        owed -= payAmount;
+        receivers[receiver.key] = receiver.value - payAmount;
+      }
+    }
+
+    return settlements;
   }
 }

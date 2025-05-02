@@ -7,6 +7,7 @@ class Group {
   final List<Expense> expenses;
   final DateTime createdAt;
   final String type;
+  final Map<String, bool> settledTransactions;
 
   Group({
     required this.id,
@@ -15,8 +16,10 @@ class Group {
     List<String>? members,
     required this.createdAt,
     this.type = 'General',
+    Map<String, bool>? settledTransactions,
   }) : expenses = List<Expense>.from(expenses ?? []),
-       members = List<String>.from(members ?? []);
+       members = List<String>.from(members ?? []),
+       settledTransactions = Map<String, bool>.from(settledTransactions ?? {});
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -25,6 +28,7 @@ class Group {
     'expenses': expenses.map((e) => e.toJson()).toList(),
     'createdAt': createdAt.toIso8601String(),
     'type': type,
+    'settledTransactions': settledTransactions,
   };
 
   factory Group.fromJson(Map<String, dynamic> json) => Group(
@@ -38,5 +42,10 @@ class Group {
     expenses:
         (json['expenses'] as List).map((e) => Expense.fromJson(e)).toList(),
     type: (json['type'] is String) ? json['type'] : 'General',
+    settledTransactions:
+        (json['settledTransactions'] != null &&
+                json['settledTransactions'] is Map)
+            ? Map<String, bool>.from(json['settledTransactions'])
+            : {},
   );
 }
