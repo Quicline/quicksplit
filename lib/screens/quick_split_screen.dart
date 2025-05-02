@@ -14,6 +14,7 @@ class _QuickSplitScreenState extends State<QuickSplitScreen> {
   double? _result;
   double? _totalWithTip;
   double? _tipPerPerson;
+  double? _excess;
   final _tipController = TextEditingController();
   String _selectedTip = '15%';
 
@@ -31,10 +32,19 @@ class _QuickSplitScreenState extends State<QuickSplitScreen> {
     final tipAmount = total * (tipPercent / 100);
     final totalWithTip = total + tipAmount;
 
+    final rawPerPerson = totalWithTip / people;
+    final roundedPerPerson = double.parse(rawPerPerson.toStringAsFixed(2));
+    final roundedTotal = roundedPerPerson * people;
+
+    final excess = roundedTotal - totalWithTip;
+
     setState(() {
       _totalWithTip = totalWithTip;
       _tipPerPerson = tipAmount / people;
-      _result = totalWithTip / people;
+      _result = roundedPerPerson;
+
+      // Only show excess if people are overpaying
+      _excess = excess > 0.01 ? excess : null;
     });
   }
 
@@ -49,10 +59,16 @@ class _QuickSplitScreenState extends State<QuickSplitScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Quick Split')),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const Text(
+              'Enter Bill Details',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
             TextField(
               controller: _totalController,
               decoration: const InputDecoration(
@@ -61,7 +77,12 @@ class _QuickSplitScreenState extends State<QuickSplitScreen> {
               ),
               keyboardType: TextInputType.numberWithOptions(decimal: true),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
+            const Text(
+              'Preferences',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
             DropdownButtonFormField<int>(
               value: _selectedPeople,
               decoration: const InputDecoration(
@@ -116,27 +137,44 @@ class _QuickSplitScreenState extends State<QuickSplitScreen> {
               onPressed: _calculateSplit,
               child: const Text('Calculate'),
             ),
-            const SizedBox(height: 30),
             if (_result != null &&
                 _totalWithTip != null &&
                 _tipPerPerson != null) ...[
+              const Divider(height: 32),
+              const Text(
+                'Split Result',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
               Text(
                 'Total with tip: \$${_totalWithTip!.toStringAsFixed(2)}',
-                style: const TextStyle(fontSize: 18),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 'Tip per person: \$${_tipPerPerson!.toStringAsFixed(2)}',
-                style: const TextStyle(fontSize: 16),
+                style: const TextStyle(fontSize: 15),
               ),
               const SizedBox(height: 8),
               Text(
                 'Each person pays: \$${_result!.toStringAsFixed(2)}',
                 style: const TextStyle(
-                  fontSize: 20,
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
               ),
+              if (_excess != null && _excess!.abs() > 0.01)
+                Text(
+                  'There\'s going to be an exceed of \$${_excess!.abs().toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey,
+                  ),
+                ),
               const SizedBox(height: 20),
               ElevatedButton.icon(
                 icon: const Icon(Icons.copy),
