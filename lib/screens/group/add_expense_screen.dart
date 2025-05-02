@@ -235,7 +235,21 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 ),
               ElevatedButton(
                 onPressed: _saveExpense,
-                child: const Text('Save Expense'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepPurple, // or your preferred color
+                  foregroundColor: Colors.white, // sets text/icon color
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 16,
+                  ),
+                ),
+                child: const Text(
+                  'Save Changes',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ],
           ),

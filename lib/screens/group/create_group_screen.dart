@@ -199,6 +199,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                 widget.existingGroup != null
                     ? 'Save Changes'
                     : 'Create and Continue',
+                style: const TextStyle(color: Colors.white),
               ),
             ),
           ],
