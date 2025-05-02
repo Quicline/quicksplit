@@ -5,6 +5,7 @@ import 'package:quicksplit/screens/group/expense_list_screen.dart';
 import 'package:quicksplit/screens/quick_split_screen.dart';
 import '../../providers/group_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart';
 
 class GroupListScreen extends StatelessWidget {
   const GroupListScreen({super.key});
@@ -103,11 +104,82 @@ class GroupListScreen extends StatelessWidget {
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(
-                        '${group.members.length} member${group.members.length > 1 ? 's' : ''}',
+                        '${group.type} • ${group.members.length} member${group.members.length != 1 ? 's' : ''}',
                       ),
-                      trailing: Text(
-                        '\$${totalAmount.toStringAsFixed(2)}',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '\$${totalAmount.toStringAsFixed(2)}',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.edit, size: 20),
+                            tooltip: 'Edit Group',
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (_) => CreateGroupScreen(
+                                        existingGroup: group,
+                                      ),
+                                ),
+                              );
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline, size: 20),
+                            tooltip: 'Delete Group',
+                            onPressed: () async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder:
+                                    (ctx) => AlertDialog(
+                                      title: const Text('Delete Group?'),
+                                      content: const Text(
+                                        'Are you sure you want to delete this group? This will remove all associated expenses.',
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed:
+                                              () =>
+                                                  Navigator.of(ctx).pop(false),
+                                          child: const Text('Cancel'),
+                                        ),
+                                        TextButton(
+                                          onPressed:
+                                              () => Navigator.of(ctx).pop(true),
+                                          child: const Text('Delete'),
+                                        ),
+                                      ],
+                                    ),
+                              );
+
+                              if (confirm == true) {
+                                final provider = Provider.of<GroupProvider>(
+                                  context,
+                                  listen: false,
+                                );
+                                final removedGroup = group;
+
+                                provider.removeGroup(removedGroup.id);
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text('Group deleted'),
+                                    action: SnackBarAction(
+                                      label: 'Undo',
+                                      onPressed: () {
+                                        provider.addGroup(removedGroup);
+                                      },
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                        ],
                       ),
                       onTap: () {
                         Navigator.push(

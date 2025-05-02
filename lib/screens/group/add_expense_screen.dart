@@ -4,6 +4,7 @@ import 'package:quicksplit/models/group.dart';
 import 'package:uuid/uuid.dart';
 import '../../models/expense.dart';
 import '../../providers/group_provider.dart';
+import 'package:intl/intl.dart';
 
 class AddExpenseScreen extends StatefulWidget {
   final String groupId;
@@ -48,6 +49,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           amount: double.tryParse(_amountController.text) ?? 0,
           paidBy: _selectedPayer ?? '',
           splitBetween: _selectedMembers,
+          createdAt: widget.expense!.createdAt,
         );
         provider.updateExpense(widget.groupId, updatedExpense);
         ScaffoldMessenger.of(
@@ -61,6 +63,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           amount: double.tryParse(_amountController.text) ?? 0,
           paidBy: _selectedPayer ?? '',
           splitBetween: _selectedMembers,
+          createdAt: DateTime.now(),
         );
         provider.addExpense(widget.groupId, newExpense);
         ScaffoldMessenger.of(
@@ -81,7 +84,14 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     final groupProvider = Provider.of<GroupProvider>(context);
     final group = groupProvider.groups.firstWhere(
       (g) => g.id == widget.groupId,
-      orElse: () => Group(id: '', name: '', members: [], expenses: []),
+      orElse:
+          () => Group(
+            id: '',
+            name: '',
+            members: [],
+            expenses: [],
+            createdAt: DateTime.now(),
+          ),
     );
 
     return Scaffold(
@@ -211,6 +221,17 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   }).toList(),
             ),
             const SizedBox(height: 24),
+            if (widget.expense != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 16.0),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Created: ${DateFormat.yMMMd().add_jm().format(widget.expense!.createdAt)}',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                ),
+              ),
             ElevatedButton(
               onPressed: _saveExpense,
               child: const Text('Save Expense'),

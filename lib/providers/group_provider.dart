@@ -14,6 +14,7 @@ class GroupProvider with ChangeNotifier {
       id: DateTime.now().toString(),
       name: name,
       members: members,
+      createdAt: DateTime.now(),
     );
     _groups.add(newGroup);
     notifyListeners();
@@ -23,6 +24,21 @@ class GroupProvider with ChangeNotifier {
     _groups.add(group);
     saveGroups();
     notifyListeners();
+  }
+
+  void removeGroup(String groupId) {
+    _groups.removeWhere((g) => g.id == groupId);
+    saveGroups();
+    notifyListeners();
+  }
+
+  void updateGroup(Group group) {
+    final index = _groups.indexWhere((g) => g.id == group.id);
+    if (index != -1) {
+      _groups[index] = group;
+      saveGroups();
+      notifyListeners();
+    }
   }
 
   void addExpense(String groupId, Expense expense) {

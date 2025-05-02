@@ -4,6 +4,7 @@ class Expense {
   final double amount;
   final String paidBy;
   final List<String> splitBetween;
+  final DateTime createdAt;
 
   Expense({
     required this.id,
@@ -11,6 +12,7 @@ class Expense {
     required this.amount,
     required this.paidBy,
     required this.splitBetween,
+    required this.createdAt,
   });
 
   Map<String, dynamic> toJson() => {
@@ -19,6 +21,7 @@ class Expense {
     'amount': amount,
     'paidBy': paidBy,
     'splitBetween': splitBetween,
+    'createdAt': createdAt.toIso8601String(),
   };
 
   factory Expense.fromJson(Map<String, dynamic> json) => Expense(
@@ -27,5 +30,9 @@ class Expense {
     amount: (json['amount'] as num).toDouble(),
     paidBy: json['paidBy'],
     splitBetween: List<String>.from(json['splitBetween']),
+    createdAt:
+        json['createdAt'] != null
+            ? DateTime.parse(json['createdAt'])
+            : DateTime.now(),
   );
 }
