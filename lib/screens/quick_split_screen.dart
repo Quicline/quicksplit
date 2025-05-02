@@ -17,6 +17,7 @@ class _QuickSplitScreenState extends State<QuickSplitScreen> {
   double? _excess;
   final _tipController = TextEditingController();
   String _selectedTip = '15%';
+  List<String> _recentSummaries = [];
 
   void _calculateSplit() {
     final total = double.tryParse(_totalController.text) ?? 0;
@@ -45,6 +46,15 @@ class _QuickSplitScreenState extends State<QuickSplitScreen> {
 
       // Only show excess if people are overpaying
       _excess = excess > 0.01 ? excess : null;
+
+      final now = DateTime.now();
+      final formattedDate =
+          '${now.month}/${now.day}/${now.year} ${now.hour}:${now.minute.toString().padLeft(2, '0')}';
+      _recentSummaries.insert(
+        0,
+        '[$formattedDate] Total: \$${totalWithTip.toStringAsFixed(2)} | $people people | Each: \$${roundedPerPerson.toStringAsFixed(2)}',
+      );
+      if (_recentSummaries.length > 5) _recentSummaries.removeLast();
     });
   }
 
@@ -64,11 +74,6 @@ class _QuickSplitScreenState extends State<QuickSplitScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Enter Bill Details',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
             TextField(
               controller: _totalController,
               decoration: const InputDecoration(
@@ -76,13 +81,9 @@ class _QuickSplitScreenState extends State<QuickSplitScreen> {
                 border: OutlineInputBorder(),
               ),
               keyboardType: TextInputType.numberWithOptions(decimal: true),
+              onChanged: (_) => _calculateSplit(),
             ),
-            const SizedBox(height: 24),
-            const Text(
-              'Preferences',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 16),
             DropdownButtonFormField<int>(
               value: _selectedPeople,
               decoration: const InputDecoration(
@@ -101,10 +102,11 @@ class _QuickSplitScreenState extends State<QuickSplitScreen> {
                   setState(() {
                     _selectedPeople = value;
                   });
+                  _calculateSplit();
                 }
               },
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               value: _selectedTip,
               decoration: const InputDecoration(
@@ -119,10 +121,11 @@ class _QuickSplitScreenState extends State<QuickSplitScreen> {
                 setState(() {
                   _selectedTip = value!;
                 });
+                _calculateSplit();
               },
             ),
             if (_selectedTip == 'Other') ...[
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
               TextField(
                 controller: _tipController,
                 decoration: const InputDecoration(
@@ -130,9 +133,11 @@ class _QuickSplitScreenState extends State<QuickSplitScreen> {
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.numberWithOptions(decimal: true),
+                onChanged: (_) => _calculateSplit(),
               ),
             ],
-            const SizedBox(height: 30),
+            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _calculateSplit,
               child: const Text('Calculate'),
@@ -175,6 +180,24 @@ class _QuickSplitScreenState extends State<QuickSplitScreen> {
                     color: Colors.grey,
                   ),
                 ),
+              const SizedBox(height: 12),
+              const Text(
+                'Smart Tip Suggestions (per person):',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey,
+                ),
+              ),
+              Text(
+                '10% → \$${(((double.tryParse(_totalController.text) ?? 0) * 0.10) / _selectedPeople).toStringAsFixed(2)}',
+              ),
+              Text(
+                '15% → \$${(((double.tryParse(_totalController.text) ?? 0) * 0.15) / _selectedPeople).toStringAsFixed(2)}',
+              ),
+              Text(
+                '20% → \$${(((double.tryParse(_totalController.text) ?? 0) * 0.20) / _selectedPeople).toStringAsFixed(2)}',
+              ),
               const SizedBox(height: 20),
               ElevatedButton.icon(
                 icon: const Icon(Icons.copy),
@@ -194,6 +217,41 @@ Each pays: \$${_result!.toStringAsFixed(2)}
                 },
               ),
             ],
+            const SizedBox(height: 16),
+            if (_recentSummaries.isNotEmpty)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Recent Splits:',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: NeverScrollableScrollPhysics(),
+                    itemCount: _recentSummaries.length,
+                    separatorBuilder: (_, __) => const Divider(height: 8),
+                    itemBuilder: (context, index) {
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(
+                          Icons.history,
+                          size: 20,
+                          color: Colors.grey,
+                        ),
+                        title: Text(_recentSummaries[index]),
+                        dense: true,
+                      );
+                    },
+                  ),
+                ],
+              ),
           ],
         ),
       ),
