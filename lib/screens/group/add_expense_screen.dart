@@ -44,7 +44,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     super.dispose();
   }
 
-  void _saveExpense() {
+  void _saveExpense() async {
     setState(() {}); // Trigger UI validation feedback
 
     final isTitleValid = _titleController.text.isNotEmpty;
@@ -62,7 +62,18 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       final provider = Provider.of<GroupProvider>(context, listen: false);
 
       if (widget.expense != null) {
-        // ✏️ Editing an existing expense
+        final isProUser = await provider.isProUser;
+        if (!isProUser) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Editing expenses is a premium feature. Upgrade to unlock this.',
+              ),
+            ),
+          );
+          return;
+        }
+
         final updatedExpense = Expense(
           id: widget.expense!.id,
           title: _titleController.text,
@@ -76,7 +87,19 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Expense updated!')));
+        return;
       } else {
+        // Check free tier limit before adding new expense
+        if (provider.totalExpenses >= 3 && !provider.isProUser) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Free tier limit reached. Upgrade to add more expenses.',
+              ),
+            ),
+          );
+          return;
+        }
         // ➕ Creating a new expense
         final newExpense = Expense(
           id: uuid.v4(),
@@ -87,7 +110,19 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           createdAt: DateTime.now(),
           note: _noteController.text,
         );
-        provider.addExpense(widget.groupId, newExpense);
+        final success = await provider.addExpense(widget.groupId, newExpense);
+        if (!success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Free tier limit reached. Upgrade to add more expenses.',
+              ),
+            ),
+          );
+          return;
+        }
+
+        Navigator.pop(context);
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Expense added!')));
@@ -167,10 +202,20 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                             context,
                             listen: false,
                           );
-                          provider.removeExpense(
+                          final success = await provider.removeExpense(
                             widget.groupId,
                             removedExpense.id,
                           );
+                          if (!success) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'You must keep at least 3 expenses on the free plan.',
+                                ),
+                              ),
+                            );
+                            return;
+                          }
 
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(

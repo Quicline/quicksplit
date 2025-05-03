@@ -5,7 +5,16 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'utils/app_styles.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  const bool isTesting = false;
+
+  if (isTesting) {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear(); // Clears all stored app data for testing
+  }
+
   runApp(const QuickSplitApp());
 }
 
@@ -14,6 +23,7 @@ class QuickSplitApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // resetAppStateForTesting();
     return ChangeNotifierProvider(
       create: (context) => GroupProvider(),
       child: MaterialApp(

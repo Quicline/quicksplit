@@ -6,10 +6,29 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class GroupProvider with ChangeNotifier {
   List<Group> _groups = [];
+  bool _isProUser = false;
+
+  bool get isProUser => _isProUser;
 
   List<Group> get groups => _groups;
 
+  /// Call this early in app lifecycle to cache pro status
+  Future<void> initialize() async {
+    final prefs = await SharedPreferences.getInstance();
+    _isProUser = prefs.getBool('isProUser') ?? false;
+  }
+
+  Future<void> refreshProStatus() async {
+    final prefs = await SharedPreferences.getInstance();
+    _isProUser = prefs.getBool('isProUser') ?? false;
+    notifyListeners();
+  }
+
   void createGroup(String name, List<String> members) {
+    if (!_isProUser && _groups.length >= 2) {
+      throw Exception('Free users can only create 2 groups.');
+    }
+
     final newGroup = Group(
       id: DateTime.now().toString(),
       name: name,
@@ -17,37 +36,58 @@ class GroupProvider with ChangeNotifier {
       createdAt: DateTime.now(),
     );
     _groups.add(newGroup);
+    saveGroups();
     notifyListeners();
   }
 
-  void addGroup(Group group) {
+  Future<bool> addGroup(Group group) async {
+    if (!_isProUser && _groups.length >= 2) return false;
     _groups.add(group);
-    saveGroups();
+    await saveGroups();
     notifyListeners();
+    return true;
   }
 
-  void removeGroup(String groupId) {
+  Future<bool> removeGroup(String groupId) async {
+    if (!_isProUser && _groups.length <= 2) {
+      return false;
+    }
+
+    final initialLength = _groups.length;
     _groups.removeWhere((g) => g.id == groupId);
-    saveGroups();
-    notifyListeners();
+    final wasRemoved = _groups.length < initialLength;
+
+    if (wasRemoved) {
+      await saveGroups();
+      notifyListeners();
+    }
+
+    return wasRemoved;
   }
 
-  void updateGroup(Group group) {
+  Future<bool> updateGroup(Group group) async {
     final index = _groups.indexWhere((g) => g.id == group.id);
     if (index != -1) {
       _groups[index] = group;
-      saveGroups();
+      await saveGroups();
       notifyListeners();
+      return true;
     }
+    return false;
   }
 
-  void addExpense(String groupId, Expense expense) {
+  Future<bool> addExpense(String groupId, Expense expense) async {
     final groupIndex = _groups.indexWhere((g) => g.id == groupId);
-    if (groupIndex != -1) {
-      _groups[groupIndex].expenses.add(expense);
-      saveGroups();
-      notifyListeners();
+    if (groupIndex == -1) return false;
+
+    if (!_isProUser && _groups[groupIndex].expenses.length >= 3) {
+      return false;
     }
+
+    _groups[groupIndex].expenses.add(expense);
+    await saveGroups();
+    notifyListeners();
+    return true;
   }
 
   void updateExpense(String groupId, Expense updatedExpense) {
@@ -64,13 +104,18 @@ class GroupProvider with ChangeNotifier {
     }
   }
 
-  void removeExpense(String groupId, String expenseId) {
+  Future<bool> removeExpense(String groupId, String expenseId) async {
     final groupIndex = _groups.indexWhere((g) => g.id == groupId);
-    if (groupIndex != -1) {
-      _groups[groupIndex].expenses.removeWhere((e) => e.id == expenseId);
-      saveGroups();
-      notifyListeners();
+    if (groupIndex == -1) return false;
+
+    if (!_isProUser && _groups[groupIndex].expenses.length <= 3) {
+      return false;
     }
+
+    _groups[groupIndex].expenses.removeWhere((e) => e.id == expenseId);
+    await saveGroups();
+    notifyListeners();
+    return true;
   }
 
   Future<void> saveGroups() async {
@@ -189,5 +234,20 @@ class GroupProvider with ChangeNotifier {
     }
 
     return settlements;
+  }
+
+  // Removed isFreeTier async getter, use isProUser instead.
+
+  int get totalExpenses {
+    return _groups.fold(0, (sum, group) => sum + group.expenses.length);
+  }
+
+  /// For testing: clears all stored preferences and resets app state.
+  Future<void> resetAppStateForTesting() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+    _groups = [];
+    _isProUser = false;
+    notifyListeners();
   }
 }

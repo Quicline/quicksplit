@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:quicksplit/screens/group_list_screen.dart';
+import 'package:quicksplit/screens/paywall_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:quicksplit/models/group.dart';
@@ -100,7 +101,54 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                 Icons.add,
                 color: Theme.of(context).colorScheme.primary,
               ),
-              onPressed: () {
+              onPressed: () async {
+                final provider = Provider.of<GroupProvider>(
+                  context,
+                  listen: false,
+                );
+                final isProUser = await provider.isProUser;
+                final groupProvider = Provider.of<GroupProvider>(
+                  context,
+                  listen: false,
+                );
+                final currentGroup = groupProvider.groups.firstWhere(
+                  (g) => g.id == widget.group.id,
+                  orElse: () => widget.group,
+                );
+                // Check if user is a pro user
+                // and if the group has 2 expenses
+                if (!isProUser && currentGroup.expenses.length <= 2) {
+                  showDialog(
+                    context: context,
+                    builder:
+                        (_) => AlertDialog(
+                          title: const Text('Upgrade Required'),
+                          content: const Text(
+                            'Free users can only add up to 2 expenses in total of all groups. Upgrade to add more.',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Cancel'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () {
+                                Navigator.pop(context);
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const PaywallScreen(),
+                                  ),
+                                );
+                              },
+                              child: const Text('Upgrade'),
+                            ),
+                          ],
+                        ),
+                  );
+                  return;
+                }
+
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -174,6 +222,57 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                             ),
                           ),
                           confirmDismiss: (_) async {
+                            final provider = Provider.of<GroupProvider>(
+                              context,
+                              listen: false,
+                            );
+                            final isProUser = await provider.isProUser;
+                            final groupProvider = Provider.of<GroupProvider>(
+                              context,
+                              listen: false,
+                            );
+                            final currentGroup = groupProvider.groups
+                                .firstWhere(
+                                  (g) => g.id == widget.group.id,
+                                  orElse: () => widget.group,
+                                );
+
+                            if (!isProUser &&
+                                currentGroup.expenses.length <= 3) {
+                              showDialog(
+                                context: context,
+                                builder:
+                                    (_) => AlertDialog(
+                                      title: const Text('Upgrade Required'),
+                                      content: const Text(
+                                        'Free users must keep at least 3 expenses in total of all groups. Upgrade to delete more.',
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed:
+                                              () => Navigator.pop(context),
+                                          child: const Text('Cancel'),
+                                        ),
+                                        ElevatedButton(
+                                          onPressed: () {
+                                            Navigator.pop(context);
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder:
+                                                    (_) =>
+                                                        const PaywallScreen(),
+                                              ),
+                                            );
+                                          },
+                                          child: const Text('Upgrade'),
+                                        ),
+                                      ],
+                                    ),
+                              );
+                              return false;
+                            }
+
                             final confirm = await showDialog<bool>(
                               context: context,
                               builder:
@@ -196,13 +295,10 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                                     ],
                                   ),
                             );
+
                             if (confirm == true) {
                               final removedExpense =
                                   currentGroup.expenses[index];
-                              final provider = Provider.of<GroupProvider>(
-                                context,
-                                listen: false,
-                              );
                               provider.removeExpense(
                                 currentGroup.id,
                                 removedExpense.id,
@@ -273,7 +369,48 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                                 color: Theme.of(context).colorScheme.primary,
                               ),
                             ),
-                            onTap: () {
+                            onTap: () async {
+                              final provider = Provider.of<GroupProvider>(
+                                context,
+                                listen: false,
+                              );
+                              final isProUser = await provider.isProUser;
+
+                              if (!isProUser) {
+                                showDialog(
+                                  context: context,
+                                  builder:
+                                      (_) => AlertDialog(
+                                        title: const Text('Upgrade Required'),
+                                        content: const Text(
+                                          'Editing expenses is a premium feature. Upgrade to unlock this functionality.',
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed:
+                                                () => Navigator.pop(context),
+                                            child: const Text('Cancel'),
+                                          ),
+                                          ElevatedButton(
+                                            onPressed: () {
+                                              Navigator.pop(context);
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder:
+                                                      (_) =>
+                                                          const PaywallScreen(),
+                                                ),
+                                              );
+                                            },
+                                            child: const Text('Upgrade'),
+                                          ),
+                                        ],
+                                      ),
+                                );
+                                return;
+                              }
+
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(

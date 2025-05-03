@@ -54,35 +54,53 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
     }
   }
 
-  void _createGroup() {
+  Future<void> _createGroup() async {
     final provider = Provider.of<GroupProvider>(context, listen: false);
 
-    if (_groupNameController.text.isNotEmpty) {
-      if (widget.existingGroup != null) {
-        final updatedGroup = Group(
-          id: widget.existingGroup!.id,
-          name: _groupNameController.text,
-          members: _members,
-          expenses: widget.existingGroup!.expenses,
-          type: _selectedGroupType,
-          createdAt: widget.existingGroup!.createdAt,
+    if (_groupNameController.text.isEmpty) return;
+
+    if (widget.existingGroup != null) {
+      final updatedGroup = Group(
+        id: widget.existingGroup!.id,
+        name: _groupNameController.text,
+        members: _members,
+        expenses: widget.existingGroup!.expenses,
+        type: _selectedGroupType,
+        createdAt: widget.existingGroup!.createdAt,
+      );
+      final success = await provider.updateGroup(updatedGroup);
+      if (!success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to update group.')),
         );
-        provider.updateGroup(updatedGroup);
-        Navigator.pop(context); // Return to previous screen
-      } else {
-        final newGroup = Group(
-          id: DateTime.now().toString(),
-          name: _groupNameController.text,
-          members: _members,
-          type: _selectedGroupType,
-          createdAt: DateTime.now(),
-        );
-        provider.addGroup(newGroup);
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => ExpenseListScreen(group: newGroup)),
-        );
+        return;
       }
+      Navigator.pop(context);
+      return;
+    } else {
+      final newGroup = Group(
+        id: DateTime.now().toString(),
+        name: _groupNameController.text,
+        members: _members,
+        type: _selectedGroupType,
+        createdAt: DateTime.now(),
+      );
+      final success = await provider.addGroup(newGroup);
+      if (!success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Free tier allows up to 2 groups only. Upgrade to premium for more.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => ExpenseListScreen(group: newGroup)),
+      );
     }
   }
 
@@ -237,7 +255,29 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                   borderRadius: BorderRadius.circular(borderRadiusValue),
                 ),
               ),
-              onPressed: _createGroup,
+              onPressed: () async {
+                final provider = Provider.of<GroupProvider>(
+                  context,
+                  listen: false,
+                );
+                final isProUser = await provider.isProUser;
+                final groupCount = provider.groups.length;
+
+                if (widget.existingGroup == null &&
+                    !isProUser &&
+                    groupCount >= 2) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Free tier allows up to 2 groups only. Upgrade to premium for more.',
+                      ),
+                    ),
+                  );
+                  return;
+                }
+
+                await _createGroup();
+              },
               child: Text(
                 widget.existingGroup != null
                     ? 'Save Changes'
