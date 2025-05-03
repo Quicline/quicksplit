@@ -49,6 +49,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         _amountController.text.isNotEmpty &&
         _selectedPayer != null &&
         _selectedPayer!.isNotEmpty) {
+      // Remove duplicates from _selectedMembers
+      _selectedMembers = _selectedMembers.toSet().toList();
+
       final provider = Provider.of<GroupProvider>(context, listen: false);
 
       if (widget.expense != null) {
@@ -278,7 +281,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                               onChanged: (selected) {
                                 setState(() {
                                   if (selected == true) {
-                                    _selectedMembers.add(member);
+                                    _selectedMembers =
+                                        {..._selectedMembers, member}.toList();
                                   } else {
                                     _selectedMembers.remove(member);
                                   }

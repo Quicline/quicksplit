@@ -188,10 +188,19 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                   ),
                   onPressed: () {
                     if (_memberController.text.trim().isNotEmpty) {
-                      setState(() {
-                        _members.add(_memberController.text.trim());
-                        _memberController.clear();
-                      });
+                      final newMember = _memberController.text.trim();
+                      if (!_members.contains(newMember)) {
+                        setState(() {
+                          _members.add(newMember);
+                          _memberController.clear();
+                        });
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('$newMember is already added'),
+                          ),
+                        );
+                      }
                     }
                   },
                   child: Text('Add', style: buttonTextStyle),
