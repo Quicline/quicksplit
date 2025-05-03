@@ -94,11 +94,19 @@ class GroupListScreen extends StatelessWidget {
       body:
           groupProvider.groups.isEmpty
               ? Center(
-                child: Text(
-                  'No groups yet. Add one!',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.group_outlined, size: 64, color: Colors.grey),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No groups yet. Add one!',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ],
                 ),
               )
               : ListView.builder(
