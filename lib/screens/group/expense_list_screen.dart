@@ -58,10 +58,28 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
     final settlements = _settlements;
 
     return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) {
-          Navigator.popUntil(context, (route) => route.isFirst);
+      onPopInvoked: (didPop) {
+        if (didPop) {
+          final groupProvider = Provider.of<GroupProvider>(
+            context,
+            listen: false,
+          );
+          final existingGroup = groupProvider.groups.firstWhere(
+            (g) => g.id == widget.group.id,
+            orElse:
+                () => Group(
+                  id: '',
+                  name: '',
+                  members: [],
+                  expenses: [],
+                  createdAt: DateTime.now(),
+                ),
+          );
+          if (existingGroup.expenses.isEmpty) {
+            Future.microtask(() {
+              Navigator.popUntil(context, (route) => route.isFirst);
+            });
+          }
         }
       },
       child: Scaffold(
@@ -83,10 +101,11 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                 color: Theme.of(context).colorScheme.primary,
               ),
               onPressed: () {
-                Navigator.pushReplacementNamed(
+                Navigator.push(
                   context,
-                  '/add-expense',
-                  arguments: currentGroup.id,
+                  MaterialPageRoute(
+                    builder: (_) => AddExpenseScreen(groupId: currentGroup.id),
+                  ),
                 );
               },
             ),

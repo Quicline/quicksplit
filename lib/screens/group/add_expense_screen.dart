@@ -45,10 +45,17 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   }
 
   void _saveExpense() {
-    if (_titleController.text.isNotEmpty &&
+    setState(() {}); // Trigger UI validation feedback
+
+    final isTitleValid = _titleController.text.isNotEmpty;
+    final isAmountValid =
         _amountController.text.isNotEmpty &&
-        _selectedPayer != null &&
-        _selectedPayer!.isNotEmpty) {
+        double.tryParse(_amountController.text) != null &&
+        double.tryParse(_amountController.text)! > 0;
+    final isPayerValid = _selectedPayer != null && _selectedPayer!.isNotEmpty;
+    final isSplitValid = _selectedMembers.isNotEmpty;
+
+    if (isTitleValid && isAmountValid && isPayerValid && isSplitValid) {
       // Remove duplicates from _selectedMembers
       _selectedMembers = _selectedMembers.toSet().toList();
 
@@ -85,8 +92,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           context,
         ).showSnackBar(const SnackBar(content: Text('Expense added!')));
       }
-
-      Navigator.pop(context);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill out all fields')),
@@ -166,7 +171,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                             widget.groupId,
                             removedExpense.id,
                           );
-                          Navigator.pop(context);
 
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -196,19 +200,37 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             children: [
               TextField(
                 controller: _titleController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Expense Title',
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
+                  errorText:
+                      _titleController.text.isNotEmpty
+                          ? null
+                          : 'Title is required',
                 ),
+                onChanged: (_) {
+                  setState(() {});
+                },
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: _amountController,
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(
-                  labelText: 'Amount',
-                  border: OutlineInputBorder(),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
                 ),
+                decoration: InputDecoration(
+                  labelText: 'Amount',
+                  border: const OutlineInputBorder(),
+                  errorText:
+                      (_amountController.text.isNotEmpty &&
+                              double.tryParse(_amountController.text) != null &&
+                              double.tryParse(_amountController.text)! > 0)
+                          ? null
+                          : 'Enter a valid positive amount',
+                ),
+                onChanged: (_) {
+                  setState(() {});
+                },
               ),
               const SizedBox(height: 16),
               TextField(
@@ -231,9 +253,13 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 ),
                 child: DropdownButtonFormField<String>(
                   value: _selectedPayer,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Paid By',
-                    border: OutlineInputBorder(),
+                    border: const OutlineInputBorder(),
+                    errorText:
+                        (_selectedPayer != null && _selectedPayer!.isNotEmpty)
+                            ? null
+                            : 'Please select a payer',
                   ),
                   items:
                       group.members.map((member) {
@@ -294,6 +320,16 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           }).toList(),
                     ),
                   ),
+                  if (_selectedMembers.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        'Please select at least one member.',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ),
                 ],
               ),
               const SizedBox(height: 24),

@@ -20,6 +20,32 @@ class _QuickSplitScreenState extends State<QuickSplitScreen> {
   List<String> _recentSummaries = [];
 
   void _calculateSplit() {
+    if (_totalController.text.isEmpty ||
+        double.tryParse(_totalController.text) == null ||
+        double.parse(_totalController.text) <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid total amount')),
+      );
+      return;
+    }
+    if (_selectedPeople <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a valid number of people')),
+      );
+      return;
+    }
+    if (_selectedTip == 'Other' &&
+        (_tipController.text.isEmpty ||
+            double.tryParse(_tipController.text) == null ||
+            double.parse(_tipController.text) < 0)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid custom tip percentage'),
+        ),
+      );
+      return;
+    }
+
     final total = double.tryParse(_totalController.text) ?? 0;
     final people = _selectedPeople;
 
@@ -50,11 +76,13 @@ class _QuickSplitScreenState extends State<QuickSplitScreen> {
       final now = DateTime.now();
       final formattedDate =
           '${now.month}/${now.day}/${now.year} ${now.hour}:${now.minute.toString().padLeft(2, '0')}';
-      _recentSummaries.insert(
-        0,
-        '[$formattedDate] Total: \$${totalWithTip.toStringAsFixed(2)} | $people people | Each: \$${roundedPerPerson.toStringAsFixed(2)}',
-      );
-      if (_recentSummaries.length > 5) _recentSummaries.removeLast();
+      final summaryText =
+          '[$formattedDate] Total: \$${totalWithTip.toStringAsFixed(2)} | $people people | Each: \$${roundedPerPerson.toStringAsFixed(2)}';
+
+      if (!_recentSummaries.contains(summaryText)) {
+        _recentSummaries.insert(0, summaryText);
+        if (_recentSummaries.length > 5) _recentSummaries.removeLast();
+      }
     });
   }
 
