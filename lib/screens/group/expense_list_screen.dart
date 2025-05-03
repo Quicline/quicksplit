@@ -58,10 +58,19 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(currentGroup.name),
+        // backgroundColor: Colors.white,
+        // foregroundColor: const Color(0xFF4CAF90),
+        elevation: 1,
+        title: Text(
+          currentGroup.name,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add),
+            icon: Icon(Icons.add, color: Theme.of(context).colorScheme.primary),
             onPressed: () {
               Navigator.push(
                 context,
@@ -105,119 +114,149 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                   itemCount: currentGroup.expenses.length,
                   itemBuilder: (context, index) {
                     final expense = currentGroup.expenses[index];
-                    return Dismissible(
-                      key: Key(expense.id),
-                      direction: DismissDirection.endToStart,
-                      background: Container(
-                        color: Colors.red,
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: const Icon(Icons.delete, color: Colors.white),
+                    return Card(
+                      margin: const EdgeInsets.all(12),
+                      elevation: 2,
+                      color: Theme.of(context).cardColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      confirmDismiss: (_) async {
-                        final confirm = await showDialog<bool>(
-                          context: context,
-                          builder:
-                              (ctx) => AlertDialog(
-                                title: const Text('Delete Expense?'),
-                                content: const Text(
-                                  'Are you sure you want to delete this expense?',
+                      child: Dismissible(
+                        key: Key(expense.id),
+                        direction: DismissDirection.endToStart,
+                        background: Container(
+                          color: Theme.of(context).colorScheme.error,
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Icon(
+                            Icons.delete,
+                            color: Theme.of(context).colorScheme.onPrimary,
+                          ),
+                        ),
+                        confirmDismiss: (_) async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder:
+                                (ctx) => AlertDialog(
+                                  title: const Text('Delete Expense?'),
+                                  content: const Text(
+                                    'Are you sure you want to delete this expense?',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed:
+                                          () => Navigator.of(ctx).pop(false),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    TextButton(
+                                      onPressed:
+                                          () => Navigator.of(ctx).pop(true),
+                                      child: const Text('Delete'),
+                                    ),
+                                  ],
                                 ),
-                                actions: [
-                                  TextButton(
-                                    onPressed:
-                                        () => Navigator.of(ctx).pop(false),
-                                    child: const Text('Cancel'),
-                                  ),
-                                  TextButton(
-                                    onPressed:
-                                        () => Navigator.of(ctx).pop(true),
-                                    child: const Text('Delete'),
-                                  ),
-                                ],
+                          );
+                          if (confirm == true) {
+                            final removedExpense = currentGroup.expenses[index];
+                            final provider = Provider.of<GroupProvider>(
+                              context,
+                              listen: false,
+                            );
+                            provider.removeExpense(
+                              currentGroup.id,
+                              removedExpense.id,
+                            );
+
+                            final updatedSummary = provider
+                                .calculateMemberSummary(currentGroup.id);
+                            final updatedSettlements = provider
+                                .calculateSettlement(currentGroup.id);
+
+                            setState(() {
+                              _summary = updatedSummary;
+                              _settlements = updatedSettlements;
+                            });
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text('Expense deleted'),
+                                action: SnackBarAction(
+                                  label: 'Undo',
+                                  onPressed: () {
+                                    provider.addExpense(
+                                      currentGroup.id,
+                                      removedExpense,
+                                    );
+                                    final refreshedSummary = provider
+                                        .calculateMemberSummary(
+                                          currentGroup.id,
+                                        );
+                                    final refreshedSettlements = provider
+                                        .calculateSettlement(currentGroup.id);
+                                    setState(() {
+                                      _summary = refreshedSummary;
+                                      _settlements = refreshedSettlements;
+                                    });
+                                  },
+                                ),
                               ),
-                        );
-                        if (confirm == true) {
-                          final removedExpense = currentGroup.expenses[index];
-                          final provider = Provider.of<GroupProvider>(
-                            context,
-                            listen: false,
-                          );
-                          provider.removeExpense(
-                            currentGroup.id,
-                            removedExpense.id,
-                          );
-
-                          final updatedSummary = provider
-                              .calculateMemberSummary(currentGroup.id);
-                          final updatedSettlements = provider
-                              .calculateSettlement(currentGroup.id);
-
-                          setState(() {
-                            _summary = updatedSummary;
-                            _settlements = updatedSettlements;
-                          });
-
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: const Text('Expense deleted'),
-                              action: SnackBarAction(
-                                label: 'Undo',
-                                onPressed: () {
-                                  provider.addExpense(
-                                    currentGroup.id,
-                                    removedExpense,
-                                  );
-                                  final refreshedSummary = provider
-                                      .calculateMemberSummary(currentGroup.id);
-                                  final refreshedSettlements = provider
-                                      .calculateSettlement(currentGroup.id);
-                                  setState(() {
-                                    _summary = refreshedSummary;
-                                    _settlements = refreshedSettlements;
-                                  });
-                                },
-                              ),
-                            ),
-                          );
-                          return true;
-                        }
-                        return false;
-                      },
-                      child: ListTile(
-                        title: Text(expense.title),
-                        subtitle: Text(
-                          'Paid by: ${expense.paidBy}\nSplit between: ${expense.splitBetween.join(', ')}',
-                        ),
-                        trailing: Text(
-                          '\$${expense.amount.toStringAsFixed(2)}',
-                        ),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder:
-                                  (_) => AddExpenseScreen(
-                                    groupId: currentGroup.id,
-                                    expense: expense,
-                                  ),
-                            ),
-                          ).then((_) {
-                            if (mounted) {
-                              final groupProvider = Provider.of<GroupProvider>(
-                                context,
-                                listen: false,
-                              );
-                              setState(() {
-                                _summary = groupProvider.calculateMemberSummary(
-                                  widget.group.id,
-                                );
-                                _settlements = groupProvider
-                                    .calculateSettlement(widget.group.id);
-                              });
-                            }
-                          });
+                            );
+                            return true;
+                          }
+                          return false;
                         },
+                        child: ListTile(
+                          title: Text(
+                            expense.title,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                          subtitle: Text(
+                            'Paid by: ${expense.paidBy}\nSplit between: ${expense.splitBetween.join(', ')}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color:
+                                  Theme.of(context).textTheme.bodyMedium?.color,
+                            ),
+                          ),
+                          trailing: Text(
+                            '\$${expense.amount.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (_) => AddExpenseScreen(
+                                      groupId: currentGroup.id,
+                                      expense: expense,
+                                    ),
+                              ),
+                            ).then((_) {
+                              if (mounted) {
+                                final groupProvider =
+                                    Provider.of<GroupProvider>(
+                                      context,
+                                      listen: false,
+                                    );
+                                setState(() {
+                                  _summary = groupProvider
+                                      .calculateMemberSummary(widget.group.id);
+                                  _settlements = groupProvider
+                                      .calculateSettlement(widget.group.id);
+                                });
+                              }
+                            });
+                          },
+                        ),
                       ),
                     );
                   },
@@ -229,10 +268,14 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                 length: 2,
                 child: Column(
                   children: [
-                    const TabBar(
-                      labelColor: Colors.blue,
+                    TabBar(
+                      labelColor: Theme.of(context).colorScheme.primary,
                       unselectedLabelColor: Colors.grey,
-                      tabs: [Tab(text: 'Summary'), Tab(text: 'Settlements')],
+                      indicatorColor: Theme.of(context).colorScheme.primary,
+                      tabs: const [
+                        Tab(text: 'Summary'),
+                        Tab(text: 'Settlements'),
+                      ],
                     ),
                     SizedBox(
                       height: 500,
@@ -242,6 +285,10 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                           Card(
                             margin: const EdgeInsets.all(12),
                             elevation: 2,
+                            color: Theme.of(context).cardColor,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                             child: Padding(
                               padding: const EdgeInsets.all(16),
                               child: Stack(
@@ -251,11 +298,15 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        const Text(
-                                          'Group Summary',
+                                        Text(
+                                          'Each member’s balance in the group',
                                           style: TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 18,
+                                            color:
+                                                Theme.of(
+                                                  context,
+                                                ).colorScheme.primary,
                                           ),
                                         ),
                                         const SizedBox(height: 12),
@@ -270,9 +321,13 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                                               .toStringAsFixed(2);
                                           final balanceColor =
                                               balance > 0
-                                                  ? Colors.green
+                                                  ? Theme.of(
+                                                    context,
+                                                  ).colorScheme.primary
                                                   : (balance < 0
-                                                      ? Colors.red
+                                                      ? Theme.of(
+                                                        context,
+                                                      ).colorScheme.error
                                                       : Colors.grey);
                                           final balanceMessage =
                                               balance > 0
@@ -292,8 +347,13 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                                               children: [
                                                 Text(
                                                   name,
-                                                  style: const TextStyle(
+                                                  style: TextStyle(
                                                     fontSize: 15,
+                                                    fontWeight: FontWeight.w500,
+                                                    color:
+                                                        Theme.of(
+                                                          context,
+                                                        ).colorScheme.primary,
                                                   ),
                                                 ),
                                                 Column(
@@ -301,15 +361,25 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                                                       CrossAxisAlignment.end,
                                                   children: [
                                                     Text(
-                                                      'Paid: \$${paid.toStringAsFixed(2)}',
-                                                      style: const TextStyle(
+                                                      'Total paid: \$${paid.toStringAsFixed(2)}',
+                                                      style: TextStyle(
                                                         fontSize: 14,
+                                                        color:
+                                                            Theme.of(context)
+                                                                .textTheme
+                                                                .bodyMedium
+                                                                ?.color,
                                                       ),
                                                     ),
                                                     Text(
-                                                      'Owed Portion: \$${share.toStringAsFixed(2)}',
-                                                      style: const TextStyle(
+                                                      'Share owed: \$${share.toStringAsFixed(2)}',
+                                                      style: TextStyle(
                                                         fontSize: 14,
+                                                        color:
+                                                            Theme.of(context)
+                                                                .textTheme
+                                                                .bodyMedium
+                                                                ?.color,
                                                       ),
                                                     ),
                                                     Text(
@@ -338,10 +408,17 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                             ),
                           ),
 
+                          // Divider or spacing between summary and settlements
+                          // (Handled outside TabBarView, see below)
+
                           // Settlements Tab
                           Card(
                             margin: const EdgeInsets.all(12),
                             elevation: 2,
+                            color: Theme.of(context).cardColor,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                             child: Padding(
                               padding: const EdgeInsets.all(16),
                               child: Stack(
@@ -366,15 +443,29 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                                           bottom: 100,
                                         ),
                                         children: [
-                                          const Text(
+                                          Text(
                                             'Settlement Suggestions',
                                             style: TextStyle(
                                               fontWeight: FontWeight.bold,
                                               fontSize: 18,
+                                              color:
+                                                  Theme.of(
+                                                    context,
+                                                  ).colorScheme.primary,
                                             ),
                                           ),
                                           const SizedBox(height: 12),
                                           ElevatedButton.icon(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor:
+                                                  Theme.of(
+                                                    context,
+                                                  ).colorScheme.primary,
+                                              foregroundColor:
+                                                  Theme.of(
+                                                    context,
+                                                  ).colorScheme.onPrimary,
+                                            ),
                                             icon: const Icon(Icons.copy),
                                             label: const Text(
                                               'Copy Settlements to Clipboard',
@@ -402,9 +493,15 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                                               ScaffoldMessenger.of(
                                                 context,
                                               ).showSnackBar(
-                                                const SnackBar(
+                                                SnackBar(
                                                   content: Text(
                                                     'Settlements copied to clipboard',
+                                                    style: TextStyle(
+                                                      color:
+                                                          Theme.of(context)
+                                                              .colorScheme
+                                                              .onInverseSurface,
+                                                    ),
                                                   ),
                                                 ),
                                               );
@@ -435,7 +532,9 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                                                   const EdgeInsets.symmetric(
                                                     vertical: 8,
                                                   ),
-                                              elevation: 1,
+                                              elevation: 2,
+                                              color:
+                                                  Theme.of(context).cardColor,
                                               shape: RoundedRectangleBorder(
                                                 borderRadius:
                                                     BorderRadius.circular(10),
@@ -445,10 +544,13 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                                                   '$payer should pay ${payments.length} ${payments.length == 1 ? 'person' : 'people'}',
                                                   style: TextStyle(
                                                     fontSize: 15,
+                                                    fontWeight: FontWeight.w500,
                                                     color:
                                                         allChecked
                                                             ? Colors.grey
-                                                            : null,
+                                                            : Theme.of(context)
+                                                                .colorScheme
+                                                                .primary,
                                                     decoration:
                                                         allChecked
                                                             ? TextDecoration
@@ -469,12 +571,17 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                                                           '${s['to']} → \$${s['amount'].toStringAsFixed(2)}',
                                                           style: TextStyle(
                                                             fontSize: 15,
+                                                            fontWeight:
+                                                                FontWeight.w500,
                                                             color:
                                                                 isChecked
                                                                     ? Colors
                                                                         .grey
-                                                                    : Colors
-                                                                        .black,
+                                                                    : Theme.of(
+                                                                          context,
+                                                                        )
+                                                                        .colorScheme
+                                                                        .primary,
                                                             decoration:
                                                                 isChecked
                                                                     ? TextDecoration
@@ -484,6 +591,10 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                                                         ),
                                                         trailing: Checkbox(
                                                           value: isChecked,
+                                                          activeColor:
+                                                              Theme.of(context)
+                                                                  .colorScheme
+                                                                  .primary,
                                                           onChanged: (val) {
                                                             setState(() {
                                                               if (val == true) {
@@ -515,6 +626,8 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
                         ],
                       ),
                     ),
+                    // Add divider/spacing between summary and settlements cards
+                    const SizedBox(height: 8),
                   ],
                 ),
               ),

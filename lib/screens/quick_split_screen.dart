@@ -67,8 +67,22 @@ class _QuickSplitScreenState extends State<QuickSplitScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+    final iconColor = Theme.of(context).iconTheme.color?.withOpacity(0.7);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Quick Split')),
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        iconTheme: IconThemeData(color: colorScheme.primary),
+        title: Text(
+          'Quick Split',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.primary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -134,14 +148,7 @@ class _QuickSplitScreenState extends State<QuickSplitScreen> {
             ],
             if (_selectedTip != 'Other') ...[
               const SizedBox(height: 12),
-              const Text(
-                'Smart Tip Suggestions:',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey,
-                ),
-              ),
+              Text('Smart Tip Suggestions:', style: textTheme.labelLarge),
               ..._calculateRoundedSmartTips(
                 double.tryParse(_totalController.text) ?? 0,
                 _selectedPeople,
@@ -154,51 +161,66 @@ class _QuickSplitScreenState extends State<QuickSplitScreen> {
             const SizedBox(height: 12),
             const SizedBox(height: 16),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colorScheme.primary,
+                foregroundColor: colorScheme.onPrimary,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+              ),
               onPressed: _calculateSplit,
-              child: const Text('Calculate'),
+              child: const Text(
+                'Calculate',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
             ),
             if (_result != null &&
                 _totalWithTip != null &&
                 _tipPerPerson != null) ...[
               const Divider(height: 32),
-              const Text(
-                'Split Result',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
+              Text('Split Result', style: textTheme.titleLarge),
               const SizedBox(height: 12),
               Text(
                 'Total with tip: \$${_totalWithTip!.toStringAsFixed(2)}',
-                style: const TextStyle(
-                  fontSize: 16,
+                style: textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 'Tip per person: \$${_tipPerPerson!.toStringAsFixed(2)}',
-                style: const TextStyle(fontSize: 15),
+                style: textTheme.bodyMedium,
               ),
               const SizedBox(height: 8),
               Text(
                 'Each person pays: \$${_result!.toStringAsFixed(2)}',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: textTheme.titleLarge,
               ),
               if (_excess != null && _excess!.abs() > 0.01)
                 Text(
                   'There\'s going to be an exceed of \$${_excess!.abs().toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 14,
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onSurface.withOpacity(0.6),
                     fontWeight: FontWeight.w500,
-                    color: Colors.grey,
                   ),
                 ),
               const SizedBox(height: 12),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.copy),
-                label: const Text('Copy Summary'),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 16,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                ),
                 onPressed: () {
                   final summary = '''
 QuickSplit Summary:
@@ -212,6 +234,21 @@ Each pays: \$${_result!.toStringAsFixed(2)}
                     const SnackBar(content: Text('Copied to clipboard')),
                   );
                 },
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.copy, size: 20, color: colorScheme.onPrimary),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Copy Summary',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: colorScheme.onPrimary,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
             const SizedBox(height: 16),
@@ -220,14 +257,7 @@ Each pays: \$${_result!.toStringAsFixed(2)}
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 20),
-                  const Text(
-                    'Recent Splits:',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.grey,
-                    ),
-                  ),
+                  Text('Recent Splits:', style: textTheme.labelLarge),
                   const SizedBox(height: 8),
                   ListView.separated(
                     shrinkWrap: true,
@@ -237,10 +267,10 @@ Each pays: \$${_result!.toStringAsFixed(2)}
                     itemBuilder: (context, index) {
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
-                        leading: const Icon(
+                        leading: Icon(
                           Icons.history,
                           size: 20,
-                          color: Colors.grey,
+                          color: iconColor,
                         ),
                         title: Text(_recentSummaries[index]),
                         dense: true,

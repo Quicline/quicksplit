@@ -88,10 +88,26 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final borderRadiusValue = 12.0;
+    final labelTextStyle = Theme.of(context).textTheme.labelLarge?.copyWith(
+      color: Theme.of(context).colorScheme.primary,
+    );
+    final buttonTextStyle = Theme.of(context).textTheme.labelLarge?.copyWith(
+      color: Theme.of(context).colorScheme.onPrimary,
+      fontWeight: FontWeight.w600,
+    );
+    final chipTextStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+      color: Theme.of(context).textTheme.bodyMedium?.color,
+    );
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
           widget.existingGroup != null ? 'Edit Group' : 'Create Group',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.primary,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
       body: SingleChildScrollView(
@@ -103,18 +119,21 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
               controller: _groupNameController,
               decoration: InputDecoration(
                 labelText: 'Group Name',
+                labelStyle: labelTextStyle,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(borderRadiusValue),
                 ),
               ),
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
               value: _selectedGroupType,
               decoration: InputDecoration(
                 labelText: 'Group Type',
+                labelStyle: labelTextStyle,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(borderRadiusValue),
                 ),
               ),
               items:
@@ -126,10 +145,10 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                           Icon(
                             _getIconForType(type),
                             size: 18,
-                            color: Colors.deepPurple,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                           const SizedBox(width: 8),
-                          Text(type),
+                          Text(type, style: labelTextStyle),
                         ],
                       ),
                     );
@@ -141,6 +160,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                   });
                 }
               },
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 16),
             Row(
@@ -150,14 +170,22 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                     controller: _memberController,
                     decoration: InputDecoration(
                       labelText: 'Add Member',
+                      labelStyle: labelTextStyle,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(borderRadiusValue),
                       ),
                     ),
+                    style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(borderRadiusValue),
+                    ),
+                  ),
                   onPressed: () {
                     if (_memberController.text.trim().isNotEmpty) {
                       setState(() {
@@ -166,32 +194,38 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                       });
                     }
                   },
-                  child: const Text('Add'),
+                  child: Text('Add', style: buttonTextStyle),
                 ),
               ],
             ),
             const SizedBox(height: 16),
             Wrap(
-              spacing: 8,
+              spacing: 12,
+              runSpacing: 8,
               children:
                   _members.map((member) {
                     return Chip(
-                      label: Text(member),
-                      deleteIcon: const Icon(Icons.close),
+                      label: Text(member, style: chipTextStyle),
+                      deleteIcon: Icon(
+                        Icons.close,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                       onDeleted: () {
                         setState(() {
                           _members.remove(member);
                         });
                       },
+                      backgroundColor:
+                          Theme.of(context).chipTheme.backgroundColor,
                     );
                   }).toList(),
             ),
             const SizedBox(height: 24),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.deepPurple,
+                backgroundColor: Theme.of(context).colorScheme.primary,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(borderRadiusValue),
                 ),
               ),
               onPressed: _createGroup,
@@ -199,12 +233,13 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
                 widget.existingGroup != null
                     ? 'Save Changes'
                     : 'Create and Continue',
-                style: const TextStyle(color: Colors.white),
+                style: buttonTextStyle,
               ),
             ),
           ],
         ),
       ),
+      backgroundColor: Theme.of(context).colorScheme.background,
     );
   }
 }

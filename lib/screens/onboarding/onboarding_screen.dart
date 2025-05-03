@@ -53,19 +53,71 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: PageView.builder(
-        controller: _controller,
-        itemCount: onboardingData.length,
-        onPageChanged: (index) => setState(() => _currentPage = index),
-        itemBuilder: (context, index) {
-          final item = onboardingData[index];
-          return OnboardingPage(
-            title: item['title']!,
-            description: item['description']!,
-            image: item['image']!,
-            onNext: _nextPage,
-          );
-        },
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: Stack(
+        children: [
+          PageView.builder(
+            controller: _controller,
+            itemCount: onboardingData.length,
+            onPageChanged: (index) => setState(() => _currentPage = index),
+            itemBuilder: (context, index) {
+              final item = onboardingData[index];
+              return OnboardingPage(
+                title: item['title']!,
+                description: item['description']!,
+                image: item['image']!,
+                onNext: _nextPage,
+                onSkip: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  await prefs.setBool('onboardingComplete', true);
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                      builder: (_) => const ModeSelectorScreen(),
+                    ),
+                  );
+                },
+                currentIndex: _currentPage,
+                totalPages: onboardingData.length,
+                titleColor: Theme.of(context).textTheme.headlineSmall?.color,
+                descriptionColor: Theme.of(context).textTheme.bodyMedium?.color,
+              );
+            },
+          ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 20.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(onboardingData.length, (index) {
+                  return GestureDetector(
+                    onTap: () {
+                      _controller.animateToPage(
+                        index,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      );
+                    },
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color:
+                            _currentPage == index
+                                ? Theme.of(context).colorScheme.primary
+                                : Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

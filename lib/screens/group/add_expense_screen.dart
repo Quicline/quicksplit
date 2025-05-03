@@ -19,6 +19,7 @@ class AddExpenseScreen extends StatefulWidget {
 class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final _titleController = TextEditingController();
   final _amountController = TextEditingController();
+  final _noteController = TextEditingController();
   String? _selectedPayer;
   final uuid = const Uuid();
   List<String> _selectedMembers = [];
@@ -31,7 +32,16 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       _amountController.text = widget.expense!.amount.toString();
       _selectedPayer = widget.expense!.paidBy;
       _selectedMembers = [...widget.expense!.splitBetween];
+      _noteController.text = widget.expense!.note ?? '';
     }
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _amountController.dispose();
+    _noteController.dispose();
+    super.dispose();
   }
 
   void _saveExpense() {
@@ -50,6 +60,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           paidBy: _selectedPayer ?? '',
           splitBetween: _selectedMembers,
           createdAt: widget.expense!.createdAt,
+          note: _noteController.text,
         );
         provider.updateExpense(widget.groupId, updatedExpense);
         ScaffoldMessenger.of(
@@ -64,6 +75,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           paidBy: _selectedPayer ?? '',
           splitBetween: _selectedMembers,
           createdAt: DateTime.now(),
+          note: _noteController.text,
         );
         provider.addExpense(widget.groupId, newExpense);
         ScaffoldMessenger.of(
@@ -96,63 +108,80 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.expense != null ? 'Edit Expense' : 'Add Expense'),
+        // backgroundColor: const Color(0xFFE6FCF6),
+        // foregroundColor: const Color(0xFF006D5B),
+        elevation: 0,
+        centerTitle: true,
+        title: Text(
+          widget.expense != null ? 'Edit Expense' : 'Add Expense',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.primary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         actions:
             widget.expense != null
                 ? [
-                  IconButton(
-                    icon: const Icon(Icons.delete),
-                    onPressed: () async {
-                      final confirm = await showDialog<bool>(
-                        context: context,
-                        builder:
-                            (ctx) => AlertDialog(
-                              title: const Text('Delete Expense?'),
-                              content: const Text(
-                                'Are you sure you want to delete this expense?',
+                  IconTheme(
+                    data: IconThemeData(
+                      color: Theme.of(context).iconTheme.color,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.delete),
+                      onPressed: () async {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder:
+                              (ctx) => AlertDialog(
+                                title: const Text('Delete Expense?'),
+                                content: const Text(
+                                  'Are you sure you want to delete this expense?',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed:
+                                        () => Navigator.of(ctx).pop(false),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  TextButton(
+                                    onPressed:
+                                        () => Navigator.of(ctx).pop(true),
+                                    child: const Text('Delete'),
+                                  ),
+                                ],
                               ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.of(ctx).pop(false),
-                                  child: const Text('Cancel'),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.of(ctx).pop(true),
-                                  child: const Text('Delete'),
-                                ),
-                              ],
+                        );
+
+                        if (confirm == true) {
+                          final removedExpense = widget.expense!;
+
+                          final provider = Provider.of<GroupProvider>(
+                            context,
+                            listen: false,
+                          );
+                          provider.removeExpense(
+                            widget.groupId,
+                            removedExpense.id,
+                          );
+                          Navigator.pop(context);
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text('Expense deleted'),
+                              action: SnackBarAction(
+                                label: 'Undo',
+                                onPressed: () {
+                                  provider.addExpense(
+                                    widget.groupId,
+                                    removedExpense,
+                                  );
+                                },
+                              ),
                             ),
-                      );
-
-                      if (confirm == true) {
-                        final removedExpense = widget.expense!;
-
-                        final provider = Provider.of<GroupProvider>(
-                          context,
-                          listen: false,
-                        );
-                        provider.removeExpense(
-                          widget.groupId,
-                          removedExpense.id,
-                        );
-                        Navigator.pop(context);
-
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text('Expense deleted'),
-                            action: SnackBarAction(
-                              label: 'Undo',
-                              onPressed: () {
-                                provider.addExpense(
-                                  widget.groupId,
-                                  removedExpense,
-                                );
-                              },
-                            ),
-                          ),
-                        );
-                      }
-                    },
+                          );
+                        }
+                      },
+                    ),
                   ),
                 ]
                 : null,
@@ -179,47 +208,89 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _selectedPayer,
+              TextField(
+                controller: _noteController,
                 decoration: const InputDecoration(
-                  labelText: 'Paid By',
+                  labelText: 'Note (optional)',
                   border: OutlineInputBorder(),
                 ),
-                items:
-                    group.members.map((member) {
-                      return DropdownMenuItem<String>(
-                        value: member,
-                        child: Text(member),
-                      );
-                    }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedPayer = value;
-                  });
-                },
+                maxLines: 2,
               ),
               const SizedBox(height: 16),
-              Text(
-                'Split Between:',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12.0,
+                  vertical: 4.0,
+                ),
+                child: DropdownButtonFormField<String>(
+                  value: _selectedPayer,
+                  decoration: const InputDecoration(
+                    labelText: 'Paid By',
+                    border: OutlineInputBorder(),
+                  ),
+                  items:
+                      group.members.map((member) {
+                        return DropdownMenuItem<String>(
+                          value: member,
+                          child: Text(member),
+                        );
+                      }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedPayer = value;
+                    });
+                  },
+                ),
               ),
+              const SizedBox(height: 16),
               Column(
-                children:
-                    group.members.map((member) {
-                      return CheckboxListTile(
-                        title: Text(member),
-                        value: _selectedMembers.contains(member),
-                        onChanged: (selected) {
-                          setState(() {
-                            if (selected == true) {
-                              _selectedMembers.add(member);
-                            } else {
-                              _selectedMembers.remove(member);
-                            }
-                          });
-                        },
-                      );
-                    }).toList(),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Split Between',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      border: Border.all(color: Theme.of(context).dividerColor),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12.0,
+                      vertical: 4.0,
+                    ),
+                    child: Column(
+                      children:
+                          group.members.map((member) {
+                            return CheckboxListTile(
+                              title: Text(member),
+                              value: _selectedMembers.contains(member),
+                              onChanged: (selected) {
+                                setState(() {
+                                  if (selected == true) {
+                                    _selectedMembers.add(member);
+                                  } else {
+                                    _selectedMembers.remove(member);
+                                  }
+                                });
+                              },
+                              controlAffinity: ListTileControlAffinity.leading,
+                              contentPadding: EdgeInsets.zero,
+                            );
+                          }).toList(),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 24),
               if (widget.expense != null)
@@ -229,15 +300,19 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     alignment: Alignment.centerLeft,
                     child: Text(
                       'Created: ${DateFormat.yMMMd().add_jm().format(widget.expense!.createdAt)}',
-                      style: TextStyle(color: Colors.grey[600]),
+                      style: TextStyle(
+                        color: Theme.of(context).textTheme.bodySmall?.color,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ),
               ElevatedButton(
                 onPressed: _saveExpense,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple, // or your preferred color
-                  foregroundColor: Colors.white, // sets text/icon color
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(24),
                   ),
@@ -248,7 +323,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 ),
                 child: const Text(
                   'Save Changes',
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
               ),
             ],

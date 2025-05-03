@@ -15,70 +15,92 @@ class GroupListScreen extends StatelessWidget {
     final groupProvider = Provider.of<GroupProvider>(context);
 
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: StatefulBuilder(
-          builder: (context, setState) {
-            bool isPressed = false;
+        // title: StatefulBuilder(
+        //   builder: (context, setState) {
+        //     bool isPressed = false;
 
-            return GestureDetector(
-              onLongPressStart: (_) {
-                setState(() => isPressed = true);
-                Future.delayed(const Duration(milliseconds: 150), () {
-                  setState(() => isPressed = false);
-                });
-              },
-              onLongPress: () {
-                showModalBottomSheet(
-                  context: context,
-                  builder: (context) {
-                    return Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            '🧪 Developer Tools',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          ElevatedButton(
-                            onPressed: () async {
-                              final prefs =
-                                  await SharedPreferences.getInstance();
-                              await prefs.remove('onboardingComplete');
-                              await prefs.remove('onboardingDate');
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Onboarding reset. Restart the app.',
-                                  ),
-                                ),
-                              );
-                            },
-                            child: const Text('Reset Onboarding'),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                );
-              },
-              child: AnimatedScale(
-                scale: isPressed ? 1.1 : 1.0,
-                duration: const Duration(milliseconds: 100),
-                child: const Text('QuickSplit – My Groups'),
-              ),
-            );
-          },
+        //     return GestureDetector(
+        //       onLongPressStart: (_) {
+        //         setState(() => isPressed = true);
+        //         Future.delayed(const Duration(milliseconds: 150), () {
+        //           setState(() => isPressed = false);
+        //         });
+        //       },
+        //       onLongPress: () {
+        //         showModalBottomSheet(
+        //           context: context,
+        //           builder: (context) {
+        //             return Padding(
+        //               padding: const EdgeInsets.all(16),
+        //               child: Column(
+        //                 mainAxisSize: MainAxisSize.min,
+        //                 children: [
+        //                   Text(
+        //                     '🧪 Developer Tools',
+        //                     style: TextStyle(
+        //                       fontSize: 18,
+        //                       fontWeight: FontWeight.bold,
+        //                       color: Theme.of(context).colorScheme.primary,
+        //                     ),
+        //                   ),
+        //                   const SizedBox(height: 12),
+        //                   ElevatedButton(
+        //                     onPressed: () async {
+        //                       final prefs =
+        //                           await SharedPreferences.getInstance();
+        //                       await prefs.remove('onboardingComplete');
+        //                       await prefs.remove('onboardingDate');
+        //                       Navigator.pop(context);
+        //                       ScaffoldMessenger.of(context).showSnackBar(
+        //                         const SnackBar(
+        //                           content: Text(
+        //                             'Onboarding reset. Restart the app.',
+        //                           ),
+        //                         ),
+        //                       );
+        //                     },
+        //                     child: const Text('Reset Onboarding'),
+        //                   ),
+        //                 ],
+        //               ),
+        //             );
+        //           },
+        //         );
+        //       },
+        //       child: AnimatedScale(
+        //         scale: isPressed ? 1.1 : 1.0,
+        //         duration: const Duration(milliseconds: 100),
+        //         child: Text(
+        //           'QuickSplit – My Groups',
+        //           style: TextStyle(
+        //             color: Theme.of(context).colorScheme.primary,
+        //             fontWeight: FontWeight.bold,
+        //           ),
+        //         ),
+        //       ),
+        //     );
+        //   },
+        // ),
+        title: Text(
+          'QuickSplit – My Groups',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.primary,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
       body:
           groupProvider.groups.isEmpty
-              ? const Center(child: Text('No groups yet. Add one!'))
+              ? Center(
+                child: Text(
+                  'No groups yet. Add one!',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              )
               : ListView.builder(
                 itemCount: groupProvider.groups.length,
                 itemBuilder: (context, index) {
@@ -90,6 +112,7 @@ class GroupListScreen extends StatelessWidget {
 
                   return Card(
                     elevation: 2,
+                    color: Theme.of(context).cardColor,
                     margin: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 8,
@@ -101,17 +124,28 @@ class GroupListScreen extends StatelessWidget {
                       ),
                       title: Text(
                         group.name,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                       ),
                       subtitle: Text(
                         '${group.type} • ${group.members.length} member${group.members.length != 1 ? 's' : ''}',
+                        style: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).textTheme.bodySmall?.color?.withOpacity(0.7),
+                        ),
                       ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             '\$${totalAmount.toStringAsFixed(2)}',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
                           ),
                           IconButton(
                             icon: const Icon(Icons.edit, size: 20),
@@ -136,9 +170,23 @@ class GroupListScreen extends StatelessWidget {
                                 context: context,
                                 builder:
                                     (ctx) => AlertDialog(
-                                      title: const Text('Delete Group?'),
-                                      content: const Text(
+                                      title: Text(
+                                        'Delete Group?',
+                                        style: TextStyle(
+                                          color:
+                                              Theme.of(
+                                                context,
+                                              ).colorScheme.primary,
+                                        ),
+                                      ),
+                                      content: Text(
                                         'Are you sure you want to delete this group? This will remove all associated expenses.',
+                                        style: TextStyle(
+                                          color:
+                                              Theme.of(
+                                                context,
+                                              ).textTheme.bodySmall?.color,
+                                        ),
                                       ),
                                       actions: [
                                         TextButton(
@@ -170,6 +218,8 @@ class GroupListScreen extends StatelessWidget {
                                     content: const Text('Group deleted'),
                                     action: SnackBarAction(
                                       label: 'Undo',
+                                      textColor:
+                                          Theme.of(context).colorScheme.primary,
                                       onPressed: () {
                                         provider.addGroup(removedGroup);
                                       },
@@ -199,8 +249,15 @@ class GroupListScreen extends StatelessWidget {
         children: [
           FloatingActionButton.extended(
             heroTag: 'quickSplit',
-            icon: const Icon(Icons.restaurant),
-            label: const Text('Quick Split'),
+            icon: Icon(
+              Icons.restaurant,
+              color: Theme.of(context).colorScheme.onPrimary,
+            ),
+            label: Text(
+              'Quick Split',
+              style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
+            ),
+            backgroundColor: Theme.of(context).colorScheme.primary,
             onPressed: () {
               Navigator.push(
                 context,
@@ -211,13 +268,17 @@ class GroupListScreen extends StatelessWidget {
           const SizedBox(height: 12),
           FloatingActionButton(
             heroTag: 'addGroup',
+            backgroundColor: Theme.of(context).colorScheme.primary,
             onPressed: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const CreateGroupScreen()),
               );
             },
-            child: const Icon(Icons.add),
+            child: Icon(
+              Icons.add,
+              color: Theme.of(context).colorScheme.onPrimary,
+            ),
           ),
         ],
       ),
